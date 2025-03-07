@@ -11,10 +11,10 @@ export default function LikedProducts() {
             <h2 className="liked-products-title">Liked Products (3)</h2>
             <div className="liked-products-main">
                 <ul className="liked-products-list">
-                    <li className="liked-products-list"><Card isLikeComponent={true} /></li>
-                    <li className="liked-products-list"><Card isLikeComponent={true} /></li>
-                    <li className="liked-products-list"><Card isLikeComponent={true} /></li>
-                    <li className="liked-products-list"><Card isLikeComponent={true} /></li>
+                    <li className="liked-products-list"><Card /></li>
+                    <li className="liked-products-list"><Card /></li>
+                    <li className="liked-products-list"><Card /></li>
+                    <li className="liked-products-list"><Card /></li>
                 </ul>
             </div>
         </section>

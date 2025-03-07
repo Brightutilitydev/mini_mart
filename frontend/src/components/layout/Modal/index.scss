@@ -24,6 +24,7 @@ body {
     background: hsl(0deg 0% 0% / 30%);
     backdrop-filter: blur(7px);
     display: grid;
+    z-index: 3;
 
 
 }

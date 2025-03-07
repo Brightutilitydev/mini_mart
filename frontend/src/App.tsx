@@ -1,77 +1,21 @@
 import "./styles/App.scss"
-import Card from "./components/utilities/Card"
-import Product from "./components/pages/Product"
 import Modal from "./components/layout/Modal"
-import { $modalIsActive, activateModal } from "./stores/modal"
+import { $modalIsActive } from "./stores/modal"
 import { useStore } from "@nanostores/react"
-import { SignUp } from "./components/pages/SignUp"
-import { $cart } from "./stores/cart"
+import { Layout } from "./components/pages/layout"
+import Header from "./components/utilities/Header"
+import Toast from "./components/utilities/Toast"
 
 function App() {
   const modalIsActive = useStore($modalIsActive)
-  const cart = useStore($cart)
-
 
   return (
     <>
-      <header className="header" aria-hidden={modalIsActive} inert={modalIsActive}>
-        <div className="header-logo">
-          <img src="/dummies/logo.png" alt="Logo" className="header-logo-img" />
-        </div>
-        <nav className="header-nav">
-          <ul className="header-nav-list">
-            <li className="header-nav-li">
-              <button data-btn className="header-nav-search-btn">
-                <span>Search</span>
-
-                <svg viewBox="0 0 24 24">
-                  <use href="#icon-search"></use>
-                </svg>
-              </button>
-            </li>
-            <li className="header-nav-li">
-              <button data-btn className="header-nav-liked-products">
-                  <span>Liked Products</span>
-                <svg viewBox="0 0 24 24">
-                  <use href="#icon-like-outline"></use>
-                </svg>
-              </button>  
-            </li>
-            <li className="header-nav-li">
-              <a href="#" data-btn className="header-nav-sign-in">Sign In</a>
-            </li>
-            <li className="header-nav-li">
-              <button data-btn className="header-nav-cart" onClick={activateModal}>
-                <svg viewBox="0 0 24 24">
-                  <use href="#icon-cart"></use>
-                </svg>
-                <span>Cart ({cart.length})</span>
-
-              </button> 
-            </li>
-          </ul>
-
-        </nav>
-      </header>
+      <Header />
       <main className="main sgrid" aria-hidden={modalIsActive} inert={modalIsActive}>
 
-
-        <SignUp />
-
-        <Product />        
-
-        {/* TODO: remove the inline styles */}
-        <section style={{marginTop: "3rem"}} className="products">
-          <h2 className="products-title">Trending Products</h2>
-
-
-          <ul className="products-list">
-            <li className="products-li"><Card/></li>
-            <li className="products-li"><Card/></li>
-            <li className="products-li"><Card/></li>
-            <li className="products-li"><Card/></li>
-          </ul>
-        </section>
+        
+        <Layout />
 
 
 
@@ -81,10 +25,11 @@ function App() {
       <footer className="footer" aria-hidden={modalIsActive} inert={modalIsActive}></footer>
 
       <Modal />
+      <Toast />
 
 
 
-      <svg style={{display: "none"}}>
+      <svg style={{ display: "none" }}>
         <symbol viewBox="0 0 24 24" id="icon-like-outline">
           <path fill="currentColor" d="m12 21l-1.45-1.3q-2.525-2.275-4.175-3.925T3.75 12.812T2.388 10.4T2 8.15Q2 5.8 3.575 4.225T7.5 2.65q1.3 0 2.475.55T12 4.75q.85-1 2.025-1.55t2.475-.55q2.35 0 3.925 1.575T22 8.15q0 1.15-.387 2.25t-1.363 2.412t-2.625 2.963T13.45 19.7zm0-2.7q2.4-2.15 3.95-3.687t2.45-2.675t1.25-2.026T20 8.15q0-1.5-1-2.5t-2.5-1q-1.175 0-2.175.662T12.95 7h-1.9q-.375-1.025-1.375-1.687T7.5 4.65q-1.5 0-2.5 1t-1 2.5q0 .875.35 1.763t1.25 2.025t2.45 2.675T12 18.3m0-6.825"></path>
         </symbol>

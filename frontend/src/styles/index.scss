@@ -77,6 +77,11 @@ body {
   }
 }
 
+a, a::before, a::after {
+  // --c-clr-link: var(--clr-link, var(--clr-black));
+  --c-clr-link: var(--clr-link, currentColor);
+  color: var(--c-clr-link);
+}
 
 
 .sgrid {
@@ -163,4 +168,9 @@ svg {
   background: var(--c-btn-bg);
   color: var(--c-btn-clr);
 
+
+  &:focus-visible {
+    outline-offset: -10px;
+    outline-color: currentColor;
+  }
 }

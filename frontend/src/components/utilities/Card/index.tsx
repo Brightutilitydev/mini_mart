@@ -37,7 +37,7 @@ function Card({ isLikeComponent = false, productData = DUMMY_CARD }) {
                 <img src={productData.image} alt={productData.product_name} />
             </div>
 
-            <h3 className="card-title">{productData.product_name}</h3>
+            <h3 className="card-title"><a href={`/products/${productData.product_id}`}>{productData.product_name}</a></h3>
             <span className="card-units">{productData.package_size}</span>
             <strong className="card-price">₦{productData.price}</strong>
 

@@ -20,12 +20,12 @@ export default function Cart() {
                 <>
                 <dl className="cart-dl">
                     {
-                        cart.map(cartItem => <>
-                            <div className="cart-field">
+                        cart.map(cartItem => 
+                            <div className="cart-field" key={cartItem.product_id}>
                                 <dt className="cart-item">{cartItem.product_name} ({cartItem.count})</dt>
                                 <dd className="cart-price">₦{cartItem.count * cartItem.price}</dd>
                             </div>
-                        </>)
+                        )
                     }
                     <div className="cart-field">
                         <dt className="cart-item cart-total">Total</dt>

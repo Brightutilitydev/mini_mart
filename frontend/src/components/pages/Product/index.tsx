@@ -11,7 +11,6 @@ function Product() {
 
 
             <article className="page-product-copy">
-                <span className="page-product-discount">30% off</span>
                 <h1 className="page-product-title">Bananas</h1>
                 <div className="page-product-description">
                     <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Dolor eveniet temporibus, illum mollitia voluptate tempore nesciunt qui laboriosam quam exercitationem!</p>
