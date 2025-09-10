@@ -4,7 +4,7 @@
 from models import storage
 from models.user import User
 from models.product import Product
-from models.quantity import Quantity
+from models.order_item import OrderItem
 from models.order import Order
 from repositories.order_repo import OrderRepository
 
@@ -52,14 +52,14 @@ order = order_repo.create_order(users[0].id, tinz_to_buy)
 print("\nOrder created:")
 print(order)
 print("Items in order:")
-for q in order.quantities:
+for q in order.order_items:
     print(f"- {q.product.name}: {q.quantity}")
 print(f"Username of orderer: {order.user.username}")
 
 
-print("\n____all quantities before deletion_______")
-print(storage.all(Quantity))
+print("\n____all order_items before deletion_______")
+print(storage.all(OrderItem))
 order.delete()
 storage.save()
-print("\n_______all quantities after deletion________")
-print(storage.all(Quantity))
+print("\n_______all order_items after deletion________")
+print(storage.all(OrderItem))

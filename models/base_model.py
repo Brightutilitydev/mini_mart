@@ -38,6 +38,7 @@ class BaseModel:
         """Update model last_modified"""
         self.last_modified = datetime.utcnow()
         models.storage.add(self)
+        models.storage.save()
 
 
     def delete(self):

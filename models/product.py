@@ -12,7 +12,7 @@ class Product(Base, BaseModel):
     __tablename__ = "products"
 
     name = Column(String(128), nullable=False)
-    category_id = Column(String(128), ForeignKey("categories.id"), nullable=False)
+    category_id = Column(String(128), ForeignKey("categories.id"), nullable=True)
     volume = Column(Integer, nullable=False)
 
     order_items = relationship(
