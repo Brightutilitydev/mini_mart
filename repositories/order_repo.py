@@ -20,3 +20,7 @@ class OrderRepository:
             new_item.save()
         storage.save()
         return order
+
+    def delete_order(self, order_id):
+        order = storage.get(Order, order_id)
+        storage.delete(order)

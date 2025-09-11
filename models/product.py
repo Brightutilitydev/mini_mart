@@ -20,6 +20,7 @@ class Product(Base, BaseModel):
         back_populates="product",
         cascade="all, delete-orphan"
     )
+    category = relationship("Category", back_populates="products")
 
     def __repr__(self):
         return f"<Product(id={self.id}, name='{self.name}', volume='{self.volume}')>"
