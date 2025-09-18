@@ -6,11 +6,27 @@ from models.product import Product
 from models.category import Category
 
 
-class ProductRepository:
+class ProductRepo:
     """Repository class to manage product operations"""
-    def create_product(self, name: str, volume: int, category_id: str = None) -> Product:
+    @classmethod
+    def new_product(cls, **kwargs) -> Product:
         """Create and store a new product"""
-        product = Product(name=name, volume=volume, category_id=category_id)
+        if not kwargs.get("name"):
+            raise ValueError("Product name is not set")
+        if not kwargs.get("price"):
+            raise ValueError("Product price is not set")
+        if not kwargs.get("volume"):
+            raise ValueError("Prduct volume is not set")
+        if not kwargs.get("category_id"):
+            kwargs['category_id'] = None
+        product = Product(
+                name=kwargs['name'],
+                volume=kwargs['volume'],
+                category_id=kwargs['category_id'],
+#               price=kwargs['price'],
+                brand=None,
+                description=None
+            )
         product.save()
         return product
 

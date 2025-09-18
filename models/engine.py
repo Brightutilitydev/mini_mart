@@ -31,8 +31,10 @@ class Storage:
 
         self.__engine = create_engine(url)
 
-        if ENV == "test":
-            Base.metadata.drop_all(self.__engine)
+
+# Uncomment before deploy
+#        if ENV == "test":
+#            Base.metadata.drop_all(self.__engine)
 
 
     def add(self, obj):

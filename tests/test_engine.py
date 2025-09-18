@@ -2,6 +2,7 @@
 """Unit tests for Storage using a mocked User model"""
 
 import unittest
+import uuid
 from sqlalchemy import Column, String, Integer
 from sqlalchemy.orm import declarative_base
 from models.engine import Storage
@@ -12,7 +13,7 @@ Base = declarative_base()
 class MockUser(Base):
     """Simple mock user model for testing"""
     __tablename__ = "users"
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String(36), primary_key=True, nullable=False, default=lambda: str(uuid.uuid4()))
     first_name = Column(String(128), nullable=False)
     last_name = Column(String(128), nullable=False)
     age = Column(Integer, nullable=False)
@@ -21,7 +22,7 @@ class MockUser(Base):
 class TestStorage(unittest.TestCase):
     def setUp(self):
         """Fresh in-memory DB before each test"""
-        self.db = Storage("sqlite:///:memory:")
+        self.db = Storage()
         Base.metadata.create_all(self.db._Storage__engine)
         self.db.reload()
 
@@ -57,7 +58,6 @@ class TestStorage(unittest.TestCase):
         self.db.save()
 
         result = self.db.all(base=Base)
-        print(result)
         self.assertIsInstance(result, list)
         self.assertTrue(any(isinstance(sub, list) for sub in result))
 
