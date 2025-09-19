@@ -9,7 +9,7 @@ from models.category import Category
 class ProductRepo:
     """Repository class to manage product operations"""
     @classmethod
-    def new_product(cls, **kwargs) -> Product:
+    def new(cls, **kwargs) -> Product:
         """Create and store a new product"""
         if not kwargs.get("name"):
             raise ValueError("Product name is not set")
@@ -38,7 +38,7 @@ class ProductRepo:
     @classmethod
     def all(cls) -> list[Product]:
         """Retrieve all products"""
-        return storage.all(Product).values()
+        return storage.all(Product)
 
     @classmethod
     def update(cls, **kwargs) -> Product | None:
