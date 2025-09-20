@@ -69,16 +69,13 @@ class ProductRepo:
 
     def get_product_by_name(cls, name: str) -> Product | None:
         """Find a product by exact name"""
-        return storage.session.query(Product).filter_by(name=name).first()
+        return storage.get_by_attr(Product, name=name)
 
     def get_products_by_category(cls, category_id: str) -> list[Product]:
         """Retrieve all products in a given category"""
-        return storage.session.query(Product).filter_by(category_id=category_id).all()
+        return storage.get_by_attr(Product, category_id=category_id)
 
-    def count_products_in_category(cls, category_id: str) -> int:
-        """Count how many products belong to a category"""
-        return storage.session.query(Product).filter_by(category_id=category_id).count()
-
+    
     def move_product_to_category(cls, product_id: str, new_category_id: str) -> Product | None:
         """Change product's category"""
         product = cls.get_product_by_id(product_id)

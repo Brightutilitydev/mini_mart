@@ -49,6 +49,11 @@ class Storage:
         return obj
 
 
+    def get_by_attr(self, cls, **kwargs):
+        """Get one object by attribute(s)"""
+        return self.__session.query(cls).filter_by(**kwargs).first()
+
+
     def all(self, model=None, base=None):
         """Fetch all objects of a model"""
         session = self.__session
@@ -62,6 +67,11 @@ class Storage:
             return result
         objs = session.query(model).all()
         return objs
+
+
+    def all_by_attr(self, cls, **kwargs):
+        """Get all objects by attribute(s)"""
+        return self.__session.query(cls).filter_by(**kwargs)
 
 
     def save(self):

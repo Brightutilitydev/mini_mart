@@ -6,7 +6,7 @@ from flask import jsonify, request
 from repositories.product_repo import ProductRepo
 
 
-@app_views.route('/', methods=['GET'])
+@app_views.route('/products', methods=['GET'])
 def get_all_products():
     """Return the a json of all products in db"""
     prod_list = ProductRepo.all()
@@ -14,7 +14,7 @@ def get_all_products():
     return jsonify(prod_list)
 
 
-@app_views.route('/<product_id>', methods=['GET'])
+@app_views.route('/products/<product_id>', methods=['GET'])
 def get_product(product_id):
     """Return a product based on id"""
     product = ProductRepo.get(product_id)
@@ -23,7 +23,7 @@ def get_product(product_id):
     return jsonify({"error": "product not found"}), 404
 
 
-@app_views.route('/create', methods=['POST', 'PUT'])
+@app_views.route('/products/create', methods=['POST', 'PUT'])
 def create_product():
     """Create a new product"""
     data = request.get_json()
@@ -31,10 +31,10 @@ def create_product():
         new = ProductRepo.new(**data)
     except ValueError as e:
         return jsonify({"error": "incorrect/incomplete parameters", "message": str(e)}), 400
-    return jsonify({"success": str(new.id)}), 201
+    return jsonify({"success": "OK"}), 201
 
 
-@app_views.route('/<product_id>', methods=['DELETE'])
+@app_views.route('/products/<product_id>', methods=['DELETE'])
 def remove_product(product_id):
     """Delete a product"""
     data = ProductRepo.delete(product_id)
@@ -43,7 +43,7 @@ def remove_product(product_id):
     return jsonify({"error": "product not found"})
 
 
-@app_views.route('/update', methods=['PUT'])
+@app_views.route('/products/update', methods=['PUT'])
 def update_product():
     """Update product"""
     data = request.get_json()

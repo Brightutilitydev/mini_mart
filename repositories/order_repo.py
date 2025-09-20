@@ -1,26 +1,99 @@
 #!/usr/bin/env python3
-"""Manage order creation and completion"""
+"""Management of order items"""
 
+from models import storage
 from models.order import Order
 from models.order_item import OrderItem
-from models import storage
+from models.product import Product
 
 
-class OrderRepository:
-    """Order manipulations"""
-
-    def create_order(self, user_id, items):
+class OrderRepo:
+    """Repository class to manage order operations"""
+ 
+    @classmethod
+    def new(cls, user_id: str, items: dict) -> Order:
+        """
+        Create a new order with items.
+        Args:
+            user_id (str): The ID of the user placing the order
+            items (dict): Mapping of {product_id: quantity}
+        Returns:
+            Order: The created order
+        Raises:
+            ValueError: If items is empty or not a dict
+        """
         if not items or not isinstance(items, dict):
-            raise ValueError("Order must be a dict")
+            raise ValueError("Order items must be provided as a dict {product_id: quantity}")
+
         order = Order(user_id=user_id)
         order.save()
         storage.save()
+
         for product_id, quantity in items.items():
+            product = storage.get(Product, product_id)
+            if not product:
+                raise ValueError(f"Product:{product_id} does not exist")
             new_item = OrderItem(order_id=order.id, product_id=product_id, quantity=quantity)
             new_item.save()
+
         storage.save()
         return order
 
-    def delete_order(self, order_id):
-        order = storage.get(Order, order_id)
+    @classmethod
+    def get(cls, order_id: str) -> Order | None:
+        """Retrieve an order by ID"""
+        return storage.get(Order, order_id)
+
+    @classmethod
+    def all(cls) -> list[Order]:
+        """Retrieve all orders"""
+        return storage.all(Order)
+
+    @classmethod
+    def delete(cls, order_id: str) -> bool:
+        """Delete an order by ID (including its items)"""
+        order = cls.get(order_id)
+        if not order:
+            return False
         storage.delete(order)
+        storage.save()
+        return True
+
+    @classmethod
+    def add_item(cls, order_id: str, product_id: str, quantity: int) -> OrderItem | None:
+        """
+        Add a product to an existing order.
+        Returns:
+            OrderItem | None
+        """
+        order = cls.get(order_id)
+        if not order:
+            return None
+        item = OrderItem(order_id=order_id, product_id=product_id, quantity=quantity)
+        item.save()
+        storage.save()
+        return item
+
+    @classmethod
+    def remove_item(cls, order_id: str, product_id: str) -> bool:
+        """
+        Remove a product from an existing order.
+        Returns:
+            True if removed, False otherwise
+        """
+        order = cls.get(order_id)
+        if not order:
+            return False
+        items = storage.get_by_attr(OrderItem, order_id=order_id, product_id=product_id)
+        if not items:
+            return False
+        for item in items:
+            storage.delete(item)
+        storage.save()
+        return True
+
+    @classmethod
+    def get_items(cls, order_id: str) -> list[OrderItem]:
+        """Retrieve all items in a given order"""
+        order =  storage.get(Order, order_id)
+        return order.order_items
