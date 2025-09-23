@@ -60,12 +60,9 @@ class ProductRepo:
         return storage.all(Product)
 
     @classmethod
-    def update(cls, **kwargs) -> Product | None:
+    def update(cls, product_id, **kwargs) -> Product | None:
         """Update product details"""
-        if not kwargs:
-            return None
-        product_id = kwargs.get("id")
-        if not product_id:
+        if not kwargs or not product_id:
             return None
         product = cls.get(product_id)
         if not product:

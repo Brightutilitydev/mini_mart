@@ -34,7 +34,19 @@ def save_image(image):
 
 @app_views.route('/products', methods=['GET'])
 def get_all_products():
-    """Return a json of all products in db"""
+    """
+    Get all products
+    ---
+    tags:
+      - Products
+    responses:
+      200:
+        description: List of all products
+        schema:
+          type: array
+          items:
+            $ref: "#/definitions/Product"
+    """
     prod_list = ProductRepo.all()
     prod_list = [entry.to_dict() for entry in prod_list]
     return jsonify(prod_list)
@@ -42,7 +54,25 @@ def get_all_products():
 
 @app_views.route('/products/<product_id>', methods=['GET'])
 def get_product(product_id):
-    """Return a product based on id"""
+    """
+    Get product by ID
+    ---
+    tags:
+      - Products
+    parameters:
+      - name: product_id
+        in: path
+        type: string
+        required: true
+        description: The product UUID
+    responses:
+      200:
+        description: Product found
+        schema:
+          $ref: "#/definitions/Product"
+      404:
+        description: Product not found
+    """
     product = ProductRepo.get(product_id)
     if product:
         return jsonify(product.to_dict())
@@ -51,21 +81,70 @@ def get_product(product_id):
 
 @app_views.route("/images/<filename>")
 def get_image(filename):
-    """Serve uploaded product images"""
+    """
+    Get product image
+    ---
+    tags:
+      - Products
+    parameters:
+      - name: filename
+        in: path
+        type: string
+        required: true
+        description: Image filename
+    responses:
+      200:
+        description: The image file
+        schema:
+          type: file
+    """
     return send_from_directory(current_app.config["UPLOAD_FOLDER"], filename)
 
 
-@app_views.route('/products/create', methods=['POST', 'PUT'])
+@app_views.route('/products', methods=['POST'])
 def create_product():
-    """Create a new product"""
+    """
+    Create a new product
+    ---
+    tags:
+      - Products
+    consumes:
+      - multipart/form-data
+    parameters:
+      - name: name
+        in: formData
+        type: string
+        required: true
+        description: Product name
+      - name: price
+        in: formData
+        type: number
+        required: true
+        description: Product price
+      - name: description
+        in: formData
+        type: string
+        description: Product description
+      - name: images
+        in: formData
+        type: file
+        description: Product image file
+    responses:
+      201:
+        description: Product created successfully
+        schema:
+          $ref: "#/definitions/Product"
+      400:
+        description: Invalid input or image type
+    """
     image_url = None
     images = request.files.getlist("images")
 
     if images:
-        for image in images:
-            image_url = save_image(image)
-            if image_url:
-                break
+        image = images[0]
+        image_url = save_image(image)
+        if not image_url:
+            return jsonify({"error": "invalid image type"}), 400
 
     data = request.form.to_dict()
     if image_url:
@@ -74,18 +153,53 @@ def create_product():
     try:
         new = ProductRepo.new(**data)
     except ValueError as e:
-        return jsonify({"error": "incorrect/incomplete parameters", "message": str(e)}), 400
+        return jsonify({"error": str(e)}), 400
 
     return jsonify(new.to_dict()), 201
 
 
-@app_views.route('/products/update', methods=['PUT'])
-def update_product():
-    """Update product (including replacing image)"""
-    product_id = request.form.get("id") or (request.json.get("id") if request.is_json else None)
-    if not product_id:
-        return jsonify({"error": "missing product id"}), 400
-
+@app_views.route('/products/<product_id>', methods=['PUT'])
+def update_product(product_id):
+    """
+    Update an existing product
+    ---
+    tags:
+      - Products
+    consumes:
+      - multipart/form-data
+      - application/json
+    parameters:
+      - name: product_id
+        in: path
+        type: string
+        required: true
+        description: The product UUID
+      - name: name
+        in: formData
+        type: string
+        description: Product name
+      - name: price
+        in: formData
+        type: number
+        description: Product price
+      - name: description
+        in: formData
+        type: string
+        description: Product description
+      - name: images
+        in: formData
+        type: file
+        description: New image file
+    responses:
+      200:
+        description: Product updated successfully
+        schema:
+          $ref: "#/definitions/Product"
+      400:
+        description: Invalid input or image type
+      404:
+        description: Product not found
+    """
     product = ProductRepo.get(product_id)
     if not product:
         return jsonify({"error": "product not found"}), 404
@@ -94,39 +208,51 @@ def update_product():
     images = request.files.getlist("images")
 
     if images:
-        for image in images:
-            if getattr(product, "image_url", None):
-                try:
-                    old_filename = os.path.basename(product.image_url)
-                    old_path = os.path.join(current_app.config["UPLOAD_FOLDER"], old_filename)
-                    if os.path.exists(old_path):
-                        os.remove(old_path)
-                except Exception as e:
-                    current_app.logger.warning(f"Failed to delete old image: {e}")
-
-            image_url = save_image(image)
-            if image_url:
-                break
+        image = images[0]
+        new_url = save_image(image)
+        if not new_url:
+            return jsonify({"error": "invalid image type"}), 400
+        if getattr(product, "image_url", None):
+            try:
+                old_filename = os.path.basename(product.image_url)
+                old_path = os.path.join(current_app.config["UPLOAD_FOLDER"], old_filename)
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+            except Exception as e:
+                current_app.logger.warning(f"Could not remove old image: {e}")
+        image_url = new_url
 
     data = request.form.to_dict() if not request.is_json else request.get_json()
     if image_url:
         data["image_url"] = image_url
 
-    res = ProductRepo.update(**data)
-    if not res:
-        return jsonify({"error": "product not found"}), 404
-
+    res = ProductRepo.update(product_id, **data)
     return jsonify(res.to_dict()), 200
 
 
 @app_views.route('/products/<product_id>', methods=['DELETE'])
 def remove_product(product_id):
-    """Delete a product and its image file"""
+    """
+    Delete a product
+    ---
+    tags:
+      - Products
+    parameters:
+      - name: product_id
+        in: path
+        type: string
+        required: true
+        description: The product UUID
+    responses:
+      200:
+        description: Product deleted successfully
+      404:
+        description: Product not found
+    """
     product = ProductRepo.get(product_id)
     if not product:
         return jsonify({"error": "product not found"}), 404
 
-    # Remove image file if present
     if getattr(product, "image_url", None):
         try:
             filename = os.path.basename(product.image_url)
@@ -134,9 +260,8 @@ def remove_product(product_id):
             if os.path.exists(file_path):
                 os.remove(file_path)
         except Exception as e:
-            current_app.logger.warning(f"Failed to delete image file: {e}")
+            current_app.logger.warning(f"Could not remove image: {e}")
 
-    # Delete product from DB
     deleted = ProductRepo.delete(product_id)
     if deleted:
         return jsonify({"success": "OK"}), 200

@@ -1,18 +1,8 @@
 #!/usr/bin/env python3
 """
 Category API routes
-
 This module manages CRUD operations for categories.
-It provides endpoints to create, read, update, and delete categories.
-
-Routes:
-    GET    /categories           -> Get all categories
-    POST   /categories/create    -> Create a new category
-    GET    /categories/<id>      -> Get a specific category by ID
-    PUT    /categories           -> Update an existing category
-    DELETE /categories/<id>      -> Delete a category
 """
-
 
 from api.v1.views import app_views
 from flask import jsonify, request
@@ -22,9 +12,17 @@ from repositories.category_repo import CategoryRepo
 @app_views.route('/categories', methods=['GET'])
 def get_all_categories():
     """
-    Return a JSON list of all categories in the database.
-    Returns:
-        200: List of categories
+    Get all categories
+    ---
+    tags:
+      - Categories
+    responses:
+      200:
+        description: List of categories
+        schema:
+          type: array
+          items:
+            $ref: '#/definitions/Category'
     """
     cat_list = CategoryRepo.all()
     cat_list = [entry.to_dict() for entry in cat_list]
@@ -34,12 +32,23 @@ def get_all_categories():
 @app_views.route('/categories/<category_id>', methods=['GET'])
 def get_category(category_id):
     """
-    Return a category by ID.
-    Args:
-        category_id (str): Category UUID
-    Returns:
-        200: Category object
-        404: If not found
+    Get category by ID
+    ---
+    tags:
+      - Categories
+    parameters:
+      - name: category_id
+        in: path
+        type: string
+        required: true
+        description: The category UUID
+    responses:
+      200:
+        description: Category object
+        schema:
+          $ref: '#/definitions/Category'
+      404:
+        description: Category not found
     """
     category = CategoryRepo.get(category_id)
     if category:
@@ -47,19 +56,29 @@ def get_category(category_id):
     return jsonify({"error": "category not found"}), 404
 
 
-@app_views.route('/categories/create', methods=['POST', 'PUT'])
+@app_views.route('/categories', methods=['POST'])
 def create_category():
     """
-    Create a new category.
-    Request JSON:
-        {
-            "name": "string",          # required
-            "description": "string",   # optional
-            "parent_id": "uuid"        # optional
-        }
-    Returns:
-        201: {"success": "OK"}
-        400: {"error": "..."}
+    Create a new category
+    ---
+    tags:
+      - Categories
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Category'
+    responses:
+      201:
+        description: Category created successfully
+        schema:
+          type: object
+          properties:
+            success:
+              type: string
+      400:
+        description: Invalid request
     """
     data = request.get_json()
     try:
@@ -72,39 +91,67 @@ def create_category():
     return jsonify({"success": "OK"}), 201
 
 
-@app_views.route('/categories/<category_id>', methods=['DELETE'])
-def remove_category(category_id):
+@app_views.route('/categories/<category_id>', methods=['PUT'])
+def update_category(category_id):
     """
-    Delete a category by ID.
-    Args:
-        category_id (str): Category UUID
-    Returns:
-        201: {"success": "OK"} if deleted
-        404: {"error": "category not found"} if not found
-    """
-    data = CategoryRepo.delete(category_id)
-    if data:
-        return jsonify({"success": "OK"}), 201
-    return jsonify({"error": "category not found"}), 404
-
-
-@app_views.route('/categories/update', methods=['PUT'])
-def update_category():
-    """
-    Update a category.
-    Request JSON:
-        {
-            "id": "uuid",              # required
-            "name": "string",          # optional
-            "description": "string",   # optional
-            "parent_id": "uuid"        # optional
-        }
-    Returns:
-        200: {"success": "OK"} if updated
-        404: {"error": "category not found"} if not found
+    Update an existing category
+    ---
+    tags:
+      - Categories
+    parameters:
+      - name: category_id
+        in: path
+        type: string
+        required: true
+        description: The category UUID
+      - in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Category'
+    responses:
+      200:
+        description: Category updated successfully
+        schema:
+          type: object
+          properties:
+            success:
+              type: string
+      404:
+        description: Category not found
     """
     data = request.get_json()
-    res = CategoryRepo.update(**data)
+    res = CategoryRepo.update(id=category_id, **data)
     if not res:
         return jsonify({"error": "category not found"}), 404
     return jsonify({"success": "OK"}), 200
+
+
+@app_views.route('/categories/<category_id>', methods=['DELETE'])
+def remove_category(category_id):
+    """
+    Delete a category
+    ---
+    tags:
+      - Categories
+    parameters:
+      - name: category_id
+        in: path
+        type: string
+        required: true
+        description: The category UUID
+    responses:
+      200:
+        description: Category deleted successfully
+        schema:
+          type: object
+          properties:
+            success:
+              type: string
+      404:
+        description: Category not found
+    """
+    data = CategoryRepo.delete(category_id)
+    if data:
+        return jsonify({"success": "OK"}), 200
+    return jsonify({"error": "category not found"}), 404
