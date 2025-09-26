@@ -5,7 +5,7 @@ Contains the TestStorageDocs and TestStorage classes
 
 from datetime import datetime
 import inspect
-import pep8
+import pycodestyle
 import unittest
 from models import Storage
 from models import engine
@@ -20,26 +20,25 @@ class TestStorageDocs(unittest.TestCase):
         """Set up for the doc tests"""
         cls.s_f = inspect.getmembers(Storage, inspect.isfunction)
 
-    def test_pep8_conformance_storage(self):
-        """Test that models/engine/engine.py conforms to PEP8."""
-        pep8s = pep8.StyleGuide(quiet=True)
-        result = pep8s.check_files(['models/engine/engine.py'])
+    def test_pycodestyle_conformance_storage(self):
+        """Test that models/engine.py conforms to PEP8."""
+        pycodestyles = pycodestyle.StyleGuide(quiet=True)
+        result = pycodestyles.check_files(['models/engine.py'])
         self.assertEqual(result.total_errors, 0,
                          "Found code style errors (and warnings).")
 
-    def test_pep8_conformance_test_storage(self):
-        """Test tests/test_models/test_engine.py conforms to PEP8."""
-        pep8s = pep8.StyleGuide(quiet=True)
-        result = pep8s.check_files(['tests/test_models/test_engine/\
-test_engine.py'])
+    def test_pycodestyle_conformance_test_storage(self):
+        """Test tests/test_engine.py conforms to PEP8."""
+        pycodestyles = pycodestyle.StyleGuide(quiet=True)
+        result = pycodestyles.check_files(['tests/test_engine.py'])
         self.assertEqual(result.total_errors, 0,
                          "Found code style errors (and warnings).")
 
     def test_storage_module_docstring(self):
         """Test for the engine.py module docstring"""
-        self.assertIsNot(storage.__doc__, None,
+        self.assertIsNot(engine.__doc__, None,
                          "engine.py needs a docstring")
-        self.assertTrue(len(storage.__doc__) >= 1,
+        self.assertTrue(len(engine.__doc__) >= 1,
                         "engine.py needs a docstring")
 
     def test_storage_class_docstring(self):
@@ -88,7 +87,8 @@ class TestStorage(unittest.TestCase):
     def test_init_engine_called(self, mock_engine):
         """Ensure create_engine is called with the correct DB URL"""
         store = engine.Storage()
-        mock_engine.assert_called_once_with("mysql+pymysql://u:p@localhost/testdb")
+        url = "mysql+pymysql://u:p@localhost/testdb"
+        mock_engine.assert_called_once_with(url)
         self.assertIsInstance(store, engine.Storage)
 
     @patch.dict(os.environ, {
@@ -130,7 +130,8 @@ class TestStorage(unittest.TestCase):
         store = self.make_storage_with_session()
         store.get_by_attr("Cls", name="Bread")
         store._Storage__session.query.assert_called_once_with("Cls")
-        store._Storage__session.query().filter_by.assert_called_once_with(name="Bread")
+        store._Storage__session.query().filter_by.assert_called_once_with(
+                name="Bread")
 
     def test_all_with_model_calls_query_all(self):
         """Ensure all(model) returns query results for given model"""
@@ -152,7 +153,8 @@ class TestStorage(unittest.TestCase):
         """Ensure all_by_attr() queries and calls filter_by with kwargs"""
         store = self.make_storage_with_session()
         store.all_by_attr("Cls", brand="Peak")
-        store._Storage__session.query().filter_by.assert_called_once_with(brand="Peak")
+        store._Storage__session.query().filter_by.assert_called_once_with(
+                brand="Peak")
 
     def test_save_commits(self):
         """Ensure save() calls session.commit"""
@@ -196,8 +198,3 @@ class TestStorage(unittest.TestCase):
         store.reload()
         mock_create.assert_called_once_with(store._Storage__engine)
         self.assertEqual(store._Storage__session, "ScopedSession")
-
-
-if __name__ == "__main__":
-    unittest.main()
-
