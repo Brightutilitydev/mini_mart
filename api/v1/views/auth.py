@@ -73,7 +73,7 @@ def login():
     return jsonify(
         access_token=access_token,
         refresh_token=refresh_token,
-        user=user
+        user=user.to_dict()
     ), 200
 
 
