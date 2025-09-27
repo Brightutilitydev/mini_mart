@@ -368,3 +368,33 @@ sqlalchemy.exc.IntegrityError: (pymysql.err.IntegrityError) (1452, 'Cannot add o
 [SQL: INSERT INTO categories (name, parent_id, id, created_at, updated_at) VALUES (%(name)s, %(parent_id)s, %(id)s, %(created_at)s, %(updated_at)s)]
 [parameters: {'name': 'Furniture', 'parent_id': '3fa85f64-5717-4562-b3fc-2c963f66afa6', 'id': '1ae5f42b-4e86-44d4-bb31-6cc618f1863f', 'created_at': datetime.datetime(2025, 9, 26, 23, 44, 12, 481409), 'updated_at': datetime.datetime(2025, 9, 26, 23, 44, 12, 481553)}]
 (Background on this error at: https://sqlalche.me/e/20/gkpj)
+2025-09-27 00:11:59,039 - ERROR - api.v1.app - Exception on /products/category/f481ea3f-0f94-438b-b425-715f3155007a [GET] [in /usr/lib/python3/dist-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/zealina/mini_mart/api/v1/views/products.py", line 271, in get_products_by_category
+    return jsonify([product.to_dict() for product in products]), 200
+                                                     ^^^^^^^^
+TypeError: 'Product' object is not iterable
+2025-09-27 00:15:27,343 - ERROR - api.v1.app - Exception on /products/category/f481ea3f-0f94-438b-b425-715f3155007a [GET] [in /usr/lib/python3/dist-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/usr/lib/python3/dist-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/zealina/mini_mart/api/v1/views/products.py", line 271, in get_products_by_category
+    return jsonify([product.to_dict() for product in products]), 200
+                                                     ^^^^^^^^
+TypeError: 'Product' object is not iterable
