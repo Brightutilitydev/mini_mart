@@ -4,8 +4,8 @@ import { useStore } from "@nanostores/react"
 
 // TODO: remove this
 const DUMMY_CARD = {
-    product_id: 2021,
-    product_name: "Banana",
+    id: 2021,
+    name: "Banana",
     package_size: "3 ounces",
     price: 40,
     image: "/dummies/thumb-bananas.png"
@@ -15,7 +15,7 @@ const DUMMY_CARD = {
 function Card({ isLikeComponent = false, productData = DUMMY_CARD }) {
 
     const cart = useStore($cart)
-    const isInCart = cart.find(item => item.product_id === productData.product_id)
+    const isInCart = cart.find(item => item.product_id === productData.id)
 
 
     return <>
@@ -34,10 +34,10 @@ function Card({ isLikeComponent = false, productData = DUMMY_CARD }) {
             </div>
 
             <div className="card-image">
-                <img src={productData.image} alt={productData.product_name} />
+                <img src={productData.image} alt={productData.name} />
             </div>
 
-            <h3 className="card-title"><a href={`/products/${productData.product_id}`}>{productData.product_name}</a></h3>
+            <h3 className="card-title"><a href={`/products/${productData.id}`}>{productData.name}</a></h3>
             <span className="card-units">{productData.package_size}</span>
             <strong className="card-price">₦{productData.price}</strong>
 
@@ -47,7 +47,7 @@ function Card({ isLikeComponent = false, productData = DUMMY_CARD }) {
                 {isInCart ?
                     <div className="card-counter">
                         <button data-btn title="Remove Item" className="card-counter-btn"
-                        onClick={removeItem.bind(null, productData.product_id)}>
+                        onClick={removeItem.bind(null, productData.id)}>
                             <svg viewBox="0 0 24 24">
                                 <title>Remove Item</title>
                                 <use href="#icon-remove"></use>
@@ -57,7 +57,7 @@ function Card({ isLikeComponent = false, productData = DUMMY_CARD }) {
                         <em className="card-counter-count">{isInCart.count ?? 0}</em>
 
                         <button data-btn className="card-counter-btn" 
-                        onClick={addItem.bind(null, productData.product_id, productData.product_name, productData.price)}>
+                        onClick={addItem.bind(null, productData.id, productData.name, productData.price)}>
                             {/* <span className="sr-only">Add Item</span> */}
                             <svg viewBox="0 0 24 24">
                                 <title>Add Item</title>
@@ -69,7 +69,7 @@ function Card({ isLikeComponent = false, productData = DUMMY_CARD }) {
 
 
                     <button className="card-add-to-cart" data-btn onClick={
-                        addItem.bind(null, productData.product_id, productData.product_name, productData.price)
+                        addItem.bind(null, productData.id, productData.name, productData.price)
                         }>
                         Add to Cart
                     </button>

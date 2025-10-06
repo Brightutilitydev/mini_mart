@@ -1,4 +1,4 @@
-const BASE_NAME = "http://127.0.0.1:5000"
+const BASE_NAME = "http://localhost:5000"
 
 
 const createApiLink = (string: string) => `${BASE_NAME}/${string}`
@@ -15,6 +15,7 @@ interface RegisteringUser {
   address: string
   email: string
   first_name: string
+  other_names: string,
   last_name: string
   password: string
   whatsapp_number: string
@@ -43,7 +44,7 @@ export const logInUser = async (user: LogInCredentials) => {
   const request = new Request(createApiLink("login"), {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(user)
   })
@@ -59,15 +60,6 @@ export const logInUser = async (user: LogInCredentials) => {
 
 
 // cookies
-const setRefreshToken = (token: string) => {
-
-  
-
-  
-}
-
-
-
 
 // types
 

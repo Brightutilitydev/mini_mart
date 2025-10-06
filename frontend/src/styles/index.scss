@@ -41,6 +41,7 @@
   --font-sans: 'Sora', system-ui, -apple-system, 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Open Sans', 'Helvetica Neue', sans-serif;
   --font-display: 'Sora', 'Londrina Solid', 'Comic Sans';
 
+  --site-padding: 5rem;
 
   font-size: 16px;
   accent-color: hsl(178deg 39% 55%);
@@ -68,9 +69,6 @@ body {
   min-height: 100vh;
   align-content: start;
 
-  // TODO: remove this line before production 
-  padding-block-end: 5rem;
-
   &[data-toast] {
     overflow: hidden;
     height: 100vh;
@@ -91,10 +89,11 @@ a, a::before, a::after {
 
   display: grid;
   align-content: var(--c-sgrid-acontent);
+  grid-template-rows: max-content 1fr max-content;
   grid-template-columns:
-    [sgrid-left-start sgrid-all-start] var(--c-sgrid-offset) // 
-    [sgrid-content-start sgrid-right-start] var(--c-sgrid-width) // 
-    [sgrid-content-end sgrid-left-end] var(--c-sgrid-offset) //
+    [sgrid-left-start sgrid-all-start] var(--c-sgrid-offset)
+    [sgrid-content-start sgrid-right-start] var(--c-sgrid-width)
+    [sgrid-content-end sgrid-left-end] var(--c-sgrid-offset)
     [sgrid-right-end sgrid-all-end];
 
 
@@ -108,6 +107,7 @@ a, a::before, a::after {
 
 main {
   --sgrid-column: sgrid-all;
+  padding-inline: var(--site-padding);
 
   &>* {
     --sgrid-column: sgrid-content;

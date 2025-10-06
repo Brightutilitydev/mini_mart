@@ -24,8 +24,9 @@ class Storage:
         HOST = getenv('MINI_MART_MYSQL_HOST')
         DB = getenv('MINI_MART_MYSQL_DB')
         ENV = getenv('MINI_MART_ENV')
-        if USER and PWD and HOST and DB and ENV:
-            url = f"mysql+pymysql://{USER}:{PWD}@{HOST}/{DB}"
+        if USER and HOST and DB and ENV:
+            # url = f"mysql+pymysql://{USER}:{PWD}@{HOST}/{DB}"
+            url = f"mysql+pymysql://{USER}:@{HOST}/{DB}"
         else:
             raise ValueError("Set all DB env variables")
         self.__engine = create_engine(url)
