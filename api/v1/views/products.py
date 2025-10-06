@@ -34,7 +34,7 @@ def save_image(image):
 
 
 @app_views.route('/products', methods=['GET'])
-@admin_required()
+# @admin_required()
 def get_all_products():
     """
     Get all products

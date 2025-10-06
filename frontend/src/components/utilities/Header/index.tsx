@@ -2,9 +2,10 @@ import "./index.scss";
 import { useStore } from "@nanostores/react";
 import { $cart } from "../../../stores/cart";
 import { $modalIsActive, openModalComponent } from "../../../stores/modal";
+import { $loggedIn } from "../../../stores/user";
 
 export default function Header() {
-
+    const loggedIn = useStore($loggedIn)
     const modalIsActive = useStore($modalIsActive)
     const cart = useStore($cart)
 
@@ -37,10 +38,10 @@ export default function Header() {
                         </svg>
                     </button>
                 </li>
-                <li className="header-nav-li">
-                    <a href="/signin" data-btn className="header-nav-sign-in">Log In</a>
-                </li>
-
+                
+                {!loggedIn && <li className="header-nav-li">
+                    <a href="/auth/signin" data-btn className="header-nav-sign-in">Log In</a>
+                </li>}
             </ul>
 
             <button data-btn className="header-nav-cart"

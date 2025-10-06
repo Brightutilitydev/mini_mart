@@ -2,4 +2,7 @@
     --sgrid-column: sgrid-all;
     // TODO: review, or remove
     margin-block-start: 1rem;
+    display: grid;
+    align-items: stretch;
+    justify-items: stretch;
 }

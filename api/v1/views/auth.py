@@ -2,7 +2,7 @@
 """User Authentication"""
 
 from api.v1.views import app_views
-from flask import jsonify, request
+from flask import jsonify, request, make_response
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
@@ -12,6 +12,7 @@ from flask_jwt_extended import (
 from flask_jwt_extended import get_jwt, verify_jwt_in_request
 from repositories.user_repo import UserRepo
 from functools import wraps
+from datetime import datetime, timedelta
 
 
 @app_views.route("/login", methods=["POST"])
@@ -41,8 +42,6 @@ def login():
           properties:
             access_token:
               type: string
-            refresh_token:
-              type: string
             user:
               type: object
               properties:
@@ -70,11 +69,19 @@ def login():
             additional_claims={"is_admin": user.is_admin})
     refresh_token = create_refresh_token(identity=user.id)
 
-    return jsonify(
+    response = make_response(jsonify(
         access_token=access_token,
-        refresh_token=refresh_token,
         user=user.to_dict()
-    ), 200
+    ))
+    
+    response.set_cookie(
+      "refresh_token",
+      refresh_token,
+      httponly=True,
+      max_age=3600*24*30
+    )
+    
+    return response, 200
 
 
 @app_views.route("/register", methods=["POST"])
@@ -142,6 +149,30 @@ def refresh():
     n_tk = create_access_token(identity=current_user_id,
                                additional_claims={"is_admin": user.is_admin})
     return jsonify(access_token=n_tk), 200
+
+@app_views.route("/profile", methods=["GET"])
+@jwt_required()
+def profile():
+    """
+    Get logged-in user's profile
+    ---
+    tags:
+      - Auth
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: User profile
+        schema:
+          $ref: '#/definitions/User'
+      401:
+        description: Unauthorized
+    """
+    current_user_id = get_jwt_identity()
+    user = UserRepo.get(current_user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    return jsonify(user.to_dict()), 200
 
 def admin_required():
     def wrapper(fn):
