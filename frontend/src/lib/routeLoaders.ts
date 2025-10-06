@@ -22,6 +22,11 @@ export const rootLoader = (setters: { setToken: Dispatch<string>, currentToken: 
   let userPromise: Promise<unknown> = Promise.resolve(null);
   try {
     userPromise = getProfile();
+    userPromise.then((user) => {
+      if (user) {
+        login(user as User);
+      }
+    })
   } catch (error) {
     userPromise = Promise.reject(error);
   }

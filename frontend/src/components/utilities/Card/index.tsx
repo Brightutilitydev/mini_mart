@@ -8,7 +8,7 @@ const DUMMY_CARD = {
     name: "Banana",
     package_size: "3 ounces",
     price: 40,
-    image: "/dummies/thumb-bananas.png"
+    image_url: "/dummies/thumb-bananas.png"
 }
 
 
@@ -34,7 +34,7 @@ function Card({ isLikeComponent = false, productData = DUMMY_CARD }) {
             </div>
 
             <div className="card-image">
-                <img src={productData.image} alt={productData.name} />
+                <img src={productData.image_url} alt={productData.name} />
             </div>
 
             <h3 className="card-title"><a href={`/products/${productData.id}`}>{productData.name}</a></h3>

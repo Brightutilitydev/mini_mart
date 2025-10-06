@@ -94,6 +94,7 @@ export async function getProfile(): Promise<User | undefined> {
     const response = await axiosConfig.get("/profile", {
       withCredentials: true
     });
+
     return response.data;
   } catch (error: any) {
     checkError(error);
