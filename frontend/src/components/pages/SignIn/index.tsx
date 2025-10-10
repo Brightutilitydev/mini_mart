@@ -32,7 +32,7 @@ export function SignIn() {
 
   const onSubmit = async (data: SignInFormType) => {
     try {
-      const { access_token, user } = await loginUser(data.email.trim(), data.password.trim());
+      const { access_token, user } = (await loginUser(data.email.trim(), data.password.trim()))!;
       setToken(access_token); // Store in context/nanostore
       login(user);            // Store user object
       reset();

@@ -2,9 +2,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { signUpUser } from "../../../lib/requestUtils";
-import { useUserUpdate } from "../../../stores/user";
 import { useMutation } from "@tanstack/react-query";
 import "./index.scss";
+import { useNavigate } from "react-router";
 
 const SignUpSchema = z.object({
   first_name: z.string().min(2, "First name must be at least 2 characters"),
@@ -19,7 +19,7 @@ const SignUpSchema = z.object({
 export type SignUpFormType = z.infer<typeof SignUpSchema>;
 
 export function SignUp() {
-  const { login } = useUserUpdate();
+  const navigate = useNavigate()
   const {
     register,
     handleSubmit,
@@ -53,9 +53,8 @@ export function SignUp() {
     },
     onSuccess: (user) => {
       if (user && user.id) {
-        login(user);
         reset();
-        // Optionally redirect or show success
+        navigate('/auth')
       } else {
         setError("email", { type: "manual", message: "Signup failed" });
       }
@@ -81,25 +80,21 @@ export function SignUp() {
           <label htmlFor="first-name">Name(s):</label>
           <input {...register("first_name")}
             type="text"
-            name="first-name"
+            name="first_name"
             placeholder="First Name *"
-            required
-            minLength={2}
             disabled={isSubmitting}
           />
           {errors.first_name && <span className="form-error">{errors.first_name.message}</span>}
           <input {...register("last_name")}
             type="text"
-            name="last-name"
+            name="last_name"
             placeholder="Last Name *"
-            required
-            minLength={2}
             disabled={isSubmitting}
           />
           {errors.last_name && <span className="form-error">{errors.last_name.message}</span>}
           <input {...register("other_names")}
             type="text"
-            name="other-names"
+            name="other_names"
             placeholder="Other Names"
             disabled={isSubmitting}
           />
@@ -110,7 +105,6 @@ export function SignUp() {
             type="text"
             name="address"
             placeholder="18 Ifelodun Street, Abusoro, Akure."
-            required
             disabled={isSubmitting}
           />
           {errors.address && <span className="form-error">{errors.address.message}</span>}
@@ -119,11 +113,9 @@ export function SignUp() {
           <label htmlFor="phone-number">Phone Number *</label>
           <input {...register("whatsapp_number")}
             type="text"
-            name="phone-number"
+            name="whatsapp_number"
             placeholder="08001797400"
             inputMode="numeric"
-            maxLength={11}
-            required
             disabled={isSubmitting}
           />
           {errors.whatsapp_number && <span className="form-error">{errors.whatsapp_number.message}</span>}
@@ -138,7 +130,6 @@ export function SignUp() {
             type="email"
             name="email"
             placeholder="kincaid@gmail.com"
-            required
             disabled={isSubmitting}
           />
           {errors.email && <span className="form-error">{errors.email.message}</span>}
@@ -149,15 +140,13 @@ export function SignUp() {
             type="password"
             name="password"
             placeholder="Password"
-            required
-            minLength={6}
             disabled={isSubmitting}
           />
           {errors.password && <span className="form-error">{errors.password.message}</span>}
           <small>Password must be minimum of 6 letters</small>
         </div>
       </section>
-  <input className="cinput-submit" id="signup-submit" type="submit" value={mutation.isPending ? "Signing Up..." : "Sign Up"} data-btn disabled={mutation.isPending} />
+      <button className="cinput-submit" id="signup-submit" type="submit" data-btn disabled={mutation.isPending} >{mutation.isPending ? "Signing Up..." : "Sign Up"}</button>
     </form>
   );
 }
