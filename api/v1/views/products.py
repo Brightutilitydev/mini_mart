@@ -9,14 +9,11 @@ from flask import (
 from werkzeug.utils import secure_filename
 from api.v1.views import app_views
 from repositories.product_repo import ProductRepo
-from api.v1.views.auth import admin_required
-
 
 allowed_extensions = {
     ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif",
     ".webp", ".heic", ".heif", ".svg", ".ico", ".jfif", ".avif"
 }
-
 
 def save_image(image):
     """Save an uploaded image with a unique filename, return its URL"""
@@ -32,121 +29,31 @@ def save_image(image):
 
     return url_for("app_views.get_image", filename=filename, _external=True)
 
-
 @app_views.route('/products', methods=['GET'])
 # @admin_required()
 def get_all_products():
-    """
-    Get all products
-    ---
-    tags:
-      - Products
-    responses:
-      200:
-        description: List of all products
-        schema:
-          type: array
-          items:
-            $ref: "#/definitions/Product"
-    """
+    """Get all products"""
     prod_list = ProductRepo.all()
     prod_list = [entry.to_dict() for entry in prod_list]
     return jsonify(prod_list)
 
-
 @app_views.route('/products/<product_id>', methods=['GET'])
 def get_product(product_id):
-    """
-    Get product by ID
-    ---
-    tags:
-      - Products
-    parameters:
-      - name: product_id
-        in: path
-        type: string
-        required: true
-        description: The product UUID
-    responses:
-      200:
-        description: Product found
-        schema:
-          $ref: "#/definitions/Product"
-      404:
-        description: Product not found
-    """
+    """Get product by ID"""
     product = ProductRepo.get(product_id)
     if product:
         return jsonify(product.to_dict())
     return jsonify({"error": "product not found"}), 404
 
-
 @app_views.route("/images/<filename>")
 def get_image(filename):
-    """
-    Get product image
-    ---
-    tags:
-      - Products
-    parameters:
-      - name: filename
-        in: path
-        type: string
-        required: true
-        description: Image filename
-    responses:
-      200:
-        description: The image file
-        schema:
-          type: file
-    """
+    """Get product image"""
     return send_from_directory(current_app.config["UPLOAD_FOLDER"], filename)
 
-
 @app_views.route('/products', methods=['POST'])
+# @admin_required()  <--- DISABLED FOR CLIENT DEMO
 def create_product():
-    """
-    Create a new product
-    ---
-    tags:
-      - Products
-    consumes:
-      - multipart/form-data
-    parameters:
-      - name: name
-        in: formData
-        type: string
-        required: true
-        description: Product name
-      - name: price
-        in: formData
-        type: number
-        required: true
-        description: Product price
-      - name: description
-        in: formData
-        type: string
-        description: Product description
-      - name: stock
-        in: formData
-        type: number
-        description: Product stock available
-      - name: category_id
-        in: formData
-        type: string
-        description: Product Category ID
-      - name: images
-        in: formData
-        type: file
-        description: Product image file
-    responses:
-      201:
-        description: Product created successfully
-        schema:
-          $ref: "#/definitions/Product"
-      400:
-        description: Invalid input or image type
-    """
+    """Create a new product"""
     image_url = None
     images = request.files.getlist("images")
 
@@ -167,58 +74,10 @@ def create_product():
 
     return jsonify(new.to_dict()), 201
 
-
 @app_views.route('/products/<product_id>', methods=['PUT'])
+# @admin_required() <--- DISABLED FOR CLIENT DEMO
 def update_product(product_id):
-    """
-    Update an existing product
-    ---
-    tags:
-      - Products
-    consumes:
-      - multipart/form-data
-      - application/json
-    parameters:
-      - name: product_id
-        in: path
-        type: string
-        required: true
-        description: The product UUID
-      - name: name
-        in: formData
-        type: string
-        description: Product name
-      - name: price
-        in: formData
-        type: number
-        description: Product price
-      - name: description
-        in: formData
-        type: string
-        description: Product description
-      - name: stock
-        in: formData
-        type: number
-        description: Product stock available
-      - name: category_id
-        in: formData
-        type: string
-        description: Product Category ID
-      - name: images
-        in: formData
-        type: file
-        description: New image file
-
-    responses:
-      200:
-        description: Product updated successfully
-        schema:
-          $ref: "#/definitions/Product"
-      400:
-        description: Invalid input or image type
-      404:
-        description: Product not found
-    """
+    """Update an existing product"""
     product = ProductRepo.get(product_id)
     if not product:
         return jsonify({"error": "product not found"}), 404
@@ -250,47 +109,16 @@ def update_product(product_id):
 
 @app_views.route('/products/category/<category_id>', methods=['GET'])
 def get_products_by_category(category_id):
-    """
-    Get products by category
-    ---
-    tags:
-      - Products
-    parameters:
-      - name: category_id
-        in: path
-        type: string
-        required: true
-        description: The category UUID
-    responses:
-      200:
-        description: Category products retrieved successfully
-      404:
-        description: Category not found
-    """
+    """Get products by category"""
     products = ProductRepo.get_products_by_category(category_id)
     if not products:
         return jsonify({"error": "category not found"}), 404
     return jsonify([product.to_dict() for product in products]), 200
 
 @app_views.route('/products/<product_id>', methods=['DELETE'])
+# @admin_required() <--- DISABLED FOR CLIENT DEMO
 def remove_product(product_id):
-    """
-    Delete a product
-    ---
-    tags:
-      - Products
-    parameters:
-      - name: product_id
-        in: path
-        type: string
-        required: true
-        description: The product UUID
-    responses:
-      200:
-        description: Product deleted successfully
-      404:
-        description: Product not found
-    """
+    """Delete a product"""
     product = ProductRepo.get(product_id)
     if not product:
         return jsonify({"error": "product not found"}), 404
