@@ -8,7 +8,12 @@ from dotenv_vault import load_dotenv
 from os import getenv
 
 
-load_dotenv()
+from dotenv_vault import load_dotenv
+
+try:
+    load_dotenv()
+except Exception:
+    pass
 
 
 class Storage:

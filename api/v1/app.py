@@ -7,20 +7,19 @@ from api.v1.views import app_views
 from flasgger import Swagger
 from models import storage
 from flask_jwt_extended import JWTManager
-from flask_cors import CORS
 from dotenv import load_dotenv
 from werkzeug.exceptions import RequestEntityTooLarge
 import logging
 from logging.handlers import RotatingFileHandler
 import os
 
-
 load_dotenv()
-
 
 app = Flask(__name__)
 
-CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
+# UPDATED: Added your live Vercel URL to the CORS origins list
+CORS(app, supports_credentials=True, origins=["http://localhost:5173", "https://mini-mart-silk.vercel.app"])
+
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 app.config["JWT_TOKEN_LOCATION"] = ["headers", "cookies"]
 app.config["JWT_ACCESS_COOKIE_NAME"] = "access_token"
@@ -45,7 +44,6 @@ handler.setFormatter(formatter)
 
 app.logger.addHandler(handler)
 app.logger.setLevel(logging.INFO)
-
 
 UPLOAD_FOLDER = os.path.join(os.getcwd(), "assets")
 MAX_CONTENT_LENGTH = 5 * 1024 * 1024
