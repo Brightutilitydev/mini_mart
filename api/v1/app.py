@@ -24,8 +24,11 @@ app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 app.config["JWT_TOKEN_LOCATION"] = ["headers", "cookies"]
 app.config["JWT_ACCESS_COOKIE_NAME"] = "access_token"
 app.config["JWT_REFRESH_COOKIE_NAME"] = "refresh_token"
-# app.config["JWT_COOKIE_SECURE"] = False
-# app.config["JWT_COOKIE_SAMESITE"] = "Lax"
+
+# ✅ FIX: Allow authentication cookies to be shared across domains (Localhost/Vercel -> Render)
+app.config["JWT_COOKIE_SECURE"] = True
+app.config["JWT_COOKIE_SAMESITE"] = "None"
+
 app.config["JWT_COOKIE_CSRF_PROTECT"] = False
 jwt = JWTManager(app)
 
