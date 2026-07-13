@@ -10,15 +10,12 @@ class OrderRepo:
     """Repository class to manage order operations"""
  
     @classmethod
-    def new(cls, user_id: str, items: dict, address: str = None, phone: str = None) -> Order:
-        """
-        Create a new order with items.
-        """
+    def new(cls, user_id: str, items: dict, **kwargs) -> Order:
         if not items or not isinstance(items, dict):
             raise ValueError("Order items must be provided as a dict {product_id: quantity}")
 
-        # ✅ EXPLICIT OBJECT CREATION - No Kwargs!
-        order = Order(user_id=user_id, delivery_address=address, contact_phone=phone)
+        # ✅ Pass kwargs (delivery details) directly into Order creation so it saves instantly
+        order = Order(user_id=user_id, **kwargs)
         order.save()
         storage.save()
 
@@ -34,17 +31,14 @@ class OrderRepo:
 
     @classmethod
     def get(cls, order_id: str) -> Order | None:
-        """Retrieve an order by ID"""
         return storage.get(Order, order_id)
 
     @classmethod
     def all(cls) -> list[Order]:
-        """Retrieve all orders"""
         return storage.all(Order)
 
     @classmethod
     def delete(cls, order_id: str) -> bool:
-        """Delete an order by ID (including its items)"""
         order = cls.get(order_id)
         if not order:
             return False
@@ -54,7 +48,6 @@ class OrderRepo:
 
     @classmethod
     def add_item(cls, order_id: str, product_id: str, quantity: int) -> OrderItem | None:
-        """Add a product to an existing order"""
         order = cls.get(order_id)
         if not order:
             return None
@@ -65,7 +58,6 @@ class OrderRepo:
 
     @classmethod
     def remove_item(cls, order_id: str, product_id: str) -> bool:
-        """Remove a product from an existing order"""
         order = cls.get(order_id)
         if not order:
             return False
@@ -79,6 +71,5 @@ class OrderRepo:
 
     @classmethod
     def get_items(cls, order_id: str) -> list[OrderItem]:
-        """Retrieve all items in a given order"""
-        order =  storage.get(Order, order_id)
+        order = storage.get(Order, order_id)
         return order.order_items

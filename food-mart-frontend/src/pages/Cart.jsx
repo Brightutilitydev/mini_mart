@@ -32,6 +32,7 @@ export default function Cart({ cart, clearCart, updateQuantity, removeFromCart, 
     try {
       // ✅ STRICT EXPLICIT PAYLOAD
       await apiClient.post('/orders', {
+        user_id: userId,   // 👈 SPRINT FIX: ADD THIS EXACT LINE BACK!
         items: orderItems,
         address: deliveryAddress,
         phone: contactPhone
