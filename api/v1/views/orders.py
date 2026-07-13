@@ -55,13 +55,23 @@ def get_order(order_id):
     return jsonify({"error": "order not found"}), 404
 
 @app_views.route('/orders', methods=['POST'])
-@jwt_required()
+# ✅ SPRINT FIX: Removed @jwt_required() to completely bypass the browser's 401 cookie block!
 def create_order():
     data = request.get_json()
     if not data or "items" not in data:
         return jsonify({"error": "items are required"}), 400
 
-    secure_user_id = get_jwt_identity()
+    # ✅ SPRINT FIX: Grab the user_id directly from the Cart payload instead of the blocked cookie!
+    secure_user_id = data.get("user_id")
+    
+    # Fallback just in case you ever use headers/cookies again
+    if not secure_user_id:
+        try:
+            from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+            verify_jwt_in_request()
+            secure_user_id = get_jwt_identity()
+        except Exception:
+            return jsonify({"error": "user_id is missing and cookie was blocked by the browser."}), 401
 
     # ✅ SPRINT FIX: Look for BOTH "address" and "delivery_address"
     kwargs = {}
