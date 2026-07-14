@@ -91,6 +91,9 @@ export default function Storefront({ user, handleLogout, products, categories, a
                     <Link to="/orders" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-[#f68b1e] rounded-lg transition-colors">
                       <Package className="h-4 w-4" /> My Orders
                     </Link>
+                    <Link to="/settings" className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-[#f68b1e] rounded-lg transition-colors">
+                      <Settings className="h-4 w-4" /> Account Settings
+                    </Link>
                   </div>
                   <div className="p-2 border-t border-gray-50">
                     <button 

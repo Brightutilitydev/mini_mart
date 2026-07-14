@@ -141,11 +141,13 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Storefront user={user} handleLogout={handleLogout} products={products} categories={categories} addToCart={addToCart} cartCount={cartCount} />} />
         <Route path="/cart" element={<Cart cart={cart} clearCart={clearCart} updateQuantity={updateQuantity} removeFromCart={removeFromCart} user={user} />} />
-        {/* ✅ We are now passing products into the Orders page! */}
         <Route path="/orders" element={<Orders user={user} products={products} />} />
         <Route path="/auth" element={<Auth setUser={setUser} />} />
         <Route path="/admin" element={<AdminRoute user={user}><AdminDashboard categories={categories} products={products} triggerReload={triggerReload} /></AdminRoute>} />
+        
+        {/* ✅ THE NEW SETTINGS ROUTE */}
         <Route path="/settings" element={<Settings user={user} setUser={setUser} />} />
+        
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
