@@ -8,6 +8,7 @@ import Storefront from './pages/Storefront';
 import Auth from './pages/Auth'; 
 import Cart from './pages/Cart'; 
 import Orders from './pages/Orders';
+import Settings from './pages/Settings';
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -144,6 +145,7 @@ export default function App() {
         <Route path="/orders" element={<Orders user={user} products={products} />} />
         <Route path="/auth" element={<Auth setUser={setUser} />} />
         <Route path="/admin" element={<AdminRoute user={user}><AdminDashboard categories={categories} products={products} triggerReload={triggerReload} /></AdminRoute>} />
+        <Route path="/settings" element={<Settings user={user} setUser={setUser} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
