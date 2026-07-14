@@ -23,6 +23,13 @@ export default function Cart({ cart, clearCart, updateQuantity, removeFromCart, 
       return;
     }
 
+    // Safely extract the user ID
+    const userId = user.id || user.user_id || user.uuid || (user.user && user.user.id);
+    if (!userId) {
+      setOrderStatus({ type: 'error', message: 'User session invalid. Please log in again.' });
+      return;
+    }
+
     setIsOrdering(true);
     setOrderStatus({ type: '', message: '' });
 
@@ -30,9 +37,9 @@ export default function Cart({ cart, clearCart, updateQuantity, removeFromCart, 
     cart.forEach(item => { orderItems[item.id] = item.quantity; });
 
     try {
-      // ✅ STRICT EXPLICIT PAYLOAD
+      // 🚨 SPRINT FIX: Sending user_id, items, address, and phone explicitly!
       await apiClient.post('/orders', {
-        user_id: userId,   // 👈 SPRINT FIX: ADD THIS EXACT LINE BACK!
+        user_id: userId,
         items: orderItems,
         address: deliveryAddress,
         phone: contactPhone
