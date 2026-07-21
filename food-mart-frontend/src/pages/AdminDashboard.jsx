@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom';
 import { 
   Database, Store, PlusCircle, Tag, Package, Trash2, 
   Edit3, CheckCircle2, AlertCircle, X, Layers, Image as ImageIcon, 
-  Truck, Clock, MapPin, Phone, Navigation, ExternalLink, ShoppingBag, FileText
+  Truck, Navigation, ExternalLink, ShoppingBag, FileText, Phone, MapPin
 } from 'lucide-react';
 import apiClient from '../api/client';
 
-export default function AdminDashboard({ categories, products, triggerReload }) {
+// ✅ Added 'user' to the accepted props
+export default function AdminDashboard({ user, categories, products, triggerReload }) {
   const [status, setStatus] = useState({ type: '', message: '' });
   const [activeTab, setActiveTab] = useState('orders');
   
@@ -21,20 +22,14 @@ export default function AdminDashboard({ categories, products, triggerReload }) 
   const [orders, setOrders] = useState([]);
   const [viewOrder, setViewOrder] = useState(null);
 
+  // ✅ Safely extract the admin's ID to bypass cookies
+  const adminId = user?.id || user?.user_id || user?.uuid || (user?.user && user.user.id);
+
   useEffect(() => {
     const fetchAdminOrders = async () => {
       try {
         const response = await apiClient.get('/orders');
-        let fetchedOrders = Array.isArray(response.data) ? response.data : [];
-        
-        // ✅ STRATEGIC SORTING: Force newest incoming orders to top mathematically
-        fetchedOrders.sort((a, b) => {
-          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-          return dateB - dateA;
-        });
-
-        setOrders(fetchedOrders);
+        setOrders(response.data.reverse());
       } catch (error) {
         console.error("Failed to fetch admin orders:", error);
       }
@@ -57,15 +52,30 @@ export default function AdminDashboard({ categories, products, triggerReload }) 
     return 0;
   };
 
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm("Are you sure? This will delete the order and return the items to warehouse stock.")) return;
+    try {
+      await apiClient.delete(`/orders/${orderId}`);
+      displayAlert('success', 'Order cancelled and inventory restocked!');
+      setViewOrder(null);
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+      triggerReload(); 
+    } catch (err) {
+      displayAlert('error', err.response?.data?.error || 'Failed to cancel order.');
+    }
+  };
+
   const handleCategorySubmit = async (e) => {
     e.preventDefault();
     if (!catName.trim()) return;
     try {
       if (editingId) {
-        await apiClient.put(`/categories/${editingId}`, { name: catName });
+        // ✅ Included user_id in payload
+        await apiClient.put(`/categories/${editingId}`, { name: catName, user_id: adminId });
         displayAlert('success', `Category updated successfully!`);
       } else {
-        await apiClient.post('/categories', { name: catName });
+        // ✅ Included user_id in payload
+        await apiClient.post('/categories', { name: catName, user_id: adminId });
         displayAlert('success', `Category "${catName}" added successfully!`);
       }
       setCatName('');
@@ -79,7 +89,8 @@ export default function AdminDashboard({ categories, products, triggerReload }) 
   const handleDeleteCategory = async (id) => {
     if (!window.confirm("Are you sure? Deleting this category might impact linked products!")) return;
     try {
-      await apiClient.delete(`/categories/${id}`);
+      // ✅ Included user_id in URL params for DELETE requests
+      await apiClient.delete(`/categories/${id}?user_id=${adminId}`);
       displayAlert('success', 'Category deleted from database.');
       triggerReload();
     } catch (err) {
@@ -90,6 +101,9 @@ export default function AdminDashboard({ categories, products, triggerReload }) 
   const handleProductSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
+    // ✅ Append user_id securely to the FormData payload
+    formData.append('user_id', adminId);
+    
     formData.append('name', prodForm.name);
     formData.append('price', prodForm.price);
     formData.append('category_id', prodForm.category_id);
@@ -133,7 +147,8 @@ export default function AdminDashboard({ categories, products, triggerReload }) 
   const handleDeleteProduct = async (id) => {
     if (!window.confirm("Delete this product permanently?")) return;
     try {
-      await apiClient.delete(`/products/${id}`);
+      // ✅ Included user_id in URL params for DELETE requests
+      await apiClient.delete(`/products/${id}?user_id=${adminId}`);
       displayAlert('success', 'Product dropped from inventory.');
       triggerReload();
     } catch (err) {
@@ -197,8 +212,6 @@ export default function AdminDashboard({ categories, products, triggerReload }) 
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* ORDERS TAB */}
           {activeTab === 'orders' && (
             <div className="lg:col-span-3">
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -215,12 +228,12 @@ export default function AdminDashboard({ categories, products, triggerReload }) 
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-sm">
                       <thead>
-                        <tr className="border-b border-gray-200 text-gray-500 font-bold bg-gray-50/50 uppercase text-xs tracking-wider">
-                          <th className="p-4 rounded-tl-lg">Order Number</th>
-                          <th className="p-4">Items</th>
-                          <th className="p-4">Contact Number</th>
-                          <th className="p-4">Address Details</th>
-                          <th className="p-4 text-right rounded-tr-lg">Action</th>
+                        <tr className="border-b border-gray-100 text-gray-400 font-semibold bg-gray-50/50">
+                          <th className="p-3 rounded-tl-lg">Order ID</th>
+                          <th className="p-3">Items</th>
+                          <th className="p-3">Contact Number</th>
+                          <th className="p-3">GPS / Address</th>
+                          <th className="p-3 text-right rounded-tr-lg">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -228,29 +241,35 @@ export default function AdminDashboard({ categories, products, triggerReload }) 
                           const orderNumber = orders.length - idx;
                           return (
                             <tr key={order.id} className="hover:bg-orange-50/30 transition-colors group">
-                              <td className="p-4">
-                                <div className="font-black text-gray-900 text-sm">Order #{orderNumber}</div>
-                                <div className="font-mono text-[10px] text-gray-400 mt-0.5">UUID: {order.id.substring(0, 8)}</div>
-                              </td>
-                              <td className="p-4 font-bold text-gray-800">
-                                <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded text-xs">
-                                  {getItemsCount(order)} units
+                              <td className="p-3 font-mono text-xs text-gray-600">
+                                <span className="bg-[#f68b1e] text-white text-xs font-black px-2 py-0.5 rounded uppercase tracking-wider mr-2">
+                                  Order #{orderNumber}
                                 </span>
+                                <br/><span className="text-[10px] text-gray-400">UUID: {order.id.substring(0, 8)}</span>
                               </td>
-                              <td className="p-4 text-gray-600 font-medium">
+                              <td className="p-3 font-bold text-gray-800">
+                                {getItemsCount(order)} units
+                              </td>
+                              <td className="p-3 text-gray-600 font-medium">
                                 {order.contact_phone || 'No phone'}
                               </td>
-                              <td className="p-4">
-                                <span className="text-gray-500 text-xs truncate max-w-[200px] inline-block font-medium">
-                                  {order.delivery_address || 'Not Provided'}
-                                </span>
+                              <td className="p-3">
+                                {order.gps_link ? (
+                                  <span className="text-blue-600 font-bold flex items-center gap-1 text-xs bg-blue-50 px-2 py-1 rounded w-max">
+                                    <Navigation className="h-3 w-3" /> GPS Provided
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-500 text-xs truncate max-w-[150px] inline-block">
+                                    {order.delivery_address || 'Not Provided'}
+                                  </span>
+                                )}
                               </td>
-                              <td className="p-4 text-right">
+                              <td className="p-3 text-right">
                                 <button 
-                                  onClick={() => setViewOrder({ ...order, orderNumber })}
-                                  className="text-xs font-bold bg-gray-900 text-white px-5 py-2 rounded-lg hover:bg-[#f68b1e] shadow-sm transition-all flex items-center gap-2 ml-auto"
+                                  onClick={() => setViewOrder({...order, orderNumber})}
+                                  className="text-xs font-bold bg-[#f68b1e] text-white px-4 py-1.5 rounded hover:bg-orange-600 shadow-sm transition-colors"
                                 >
-                                  View Dispatch <ExternalLink className="h-3.5 w-3.5" />
+                                  View Dispatch
                                 </button>
                               </td>
                             </tr>
@@ -264,7 +283,6 @@ export default function AdminDashboard({ categories, products, triggerReload }) 
             </div>
           )}
 
-          {/* PRODUCTS & CATEGORIES TABS */}
           {activeTab !== 'orders' && (
             <>
               <div className="lg:col-span-1">
@@ -446,6 +464,7 @@ export default function AdminDashboard({ categories, products, triggerReload }) 
         </div>
       </div>
 
+      {/* ✅ ADMIN DISPATCH MODAL OVERLAY */}
       {viewOrder && (
         <div 
           className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in"
@@ -544,6 +563,15 @@ export default function AdminDashboard({ categories, products, triggerReload }) 
                 >
                   Close
                 </button>
+                
+                {/* ✅ CANCEL AND RESTOCK BUTTON */}
+                <button 
+                  onClick={() => handleCancelOrder(viewOrder.id)}
+                  className="flex-1 bg-red-50 text-red-600 font-bold py-3 rounded-xl hover:bg-red-100 transition-colors flex justify-center items-center gap-2 shadow-sm"
+                >
+                  <Trash2 className="h-4 w-4" /> Cancel & Restock
+                </button>
+
                 <button 
                   className="flex-1 bg-green-500 text-white font-bold py-3 rounded-xl hover:bg-green-600 transition-colors flex justify-center items-center gap-2 shadow-sm"
                   onClick={() => alert("Marked as dispatched! (Database toggle coming soon)")}
@@ -560,3 +588,4 @@ export default function AdminDashboard({ categories, products, triggerReload }) 
     </div>
   );
 }
+

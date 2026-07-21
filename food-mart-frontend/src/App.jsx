@@ -149,10 +149,11 @@ export default function App() {
           path="/admin" 
           element={
             <AdminRoute user={user}>
-              <AdminDashboard categories={categories} products={products} triggerReload={triggerReload} />
+              <AdminDashboard user={user} categories={categories} products={products} triggerReload={triggerReload} />
             </AdminRoute>
           } 
         />
+       
         
         <Route path="/settings" element={<Settings user={user} setUser={setUser} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
