@@ -76,3 +76,18 @@ def remove_item_from_order(order_id, product_id):
     if OrderRepo.remove_item(order_id, product_id):
         return jsonify({"success": "OK"}), 200
     return jsonify({"error": "order or item not found"}), 404
+@app_views.route('/orders/<order_id>/status', methods=['PUT'])
+def update_order_status(order_id):
+    """
+    Update order fulfillment status (Pending, Processing, Dispatched, Delivered)
+    """
+    data = request.get_json()
+    if not data or "status" not in data:
+        return jsonify({"error": "status is required"}), 400
+    
+    updated = OrderRepo.update_status(order_id, data["status"])
+    if updated:
+        return jsonify({"success": "OK", "status": data["status"]}), 200
+        
+    return jsonify({"error": "order not found"}), 404
+

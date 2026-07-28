@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { ArrowLeft, Package, Clock, CheckCircle2, X, MapPin, Phone, Navigation, ExternalLink, ShoppingBag, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Package, Clock, CheckCircle2, X, MapPin, Phone, Navigation, ExternalLink, ShoppingBag, ChevronRight, Truck } from 'lucide-react';
 import apiClient from '../api/client';
 
 export default function Orders({ user, products }) {
@@ -27,7 +27,6 @@ export default function Orders({ user, products }) {
           ? response.data.filter(o => o.user_id === userId) 
           : [];
         
-        // ✅ STRATEGIC SORTING: Force newest dates to the top mathematically
         myOrders.sort((a, b) => {
           const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
           const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -45,6 +44,20 @@ export default function Orders({ user, products }) {
   }, [user]);
 
   if (!user) return <Navigate to="/auth" />;
+
+  // ✅ NEW: BEAUTIFUL DYNAMIC CUSTOMER STATUS BADGES
+  const renderStatusBadge = (status) => {
+    switch(status) {
+      case 'Processing': 
+        return <span className="bg-blue-50 text-blue-700 border border-blue-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm"><Package className="h-3.5 w-3.5" /> Processing</span>;
+      case 'Dispatched': 
+        return <span className="bg-orange-50 text-orange-700 border border-orange-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm"><Truck className="h-3.5 w-3.5" /> Dispatched</span>;
+      case 'Delivered': 
+        return <span className="bg-green-50 text-green-700 border border-green-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm"><CheckCircle2 className="h-3.5 w-3.5" /> Delivered</span>;
+      default: 
+        return <span className="bg-gray-50 text-gray-700 border border-gray-200 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm"><Clock className="h-3.5 w-3.5" /> Pending</span>;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f1f1f2] font-sans text-[#282828] flex flex-col relative pb-12">
@@ -76,7 +89,7 @@ export default function Orders({ user, products }) {
         ) : (
           <div className="space-y-4">
             {orders.map((order, idx) => {
-              const orderNumber = orders.length - idx; // Chronological order numbering
+              const orderNumber = orders.length - idx; 
               
               return (
                 <div 
@@ -93,12 +106,11 @@ export default function Orders({ user, products }) {
                         <p className="text-xs font-mono text-gray-400">ID: {order.id?.substring(0, 8)}</p>
                       </div>
                       <p className="text-sm font-medium text-gray-800 flex items-center gap-1.5 mt-2">
-                        <Clock className="h-4 w-4 text-[#f68b1e]" /> Order Received successfully
+                        {order.created_at ? new Date(order.created_at).toLocaleDateString() : 'Date unavailable'}
                       </p>
                     </div>
-                    <span className="bg-green-50 text-green-700 border border-green-100 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Confirmed
-                    </span>
+                    {/* ✅ DYNAMIC BADGE RENDERED HERE */}
+                    {renderStatusBadge(order.status)}
                   </div>
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-gray-500">
@@ -115,7 +127,6 @@ export default function Orders({ user, products }) {
         )}
       </main>
 
-      {/* ✅ ORDER DETAILS MODAL OVERLAY */}
       {selectedOrder && (
         <div 
           className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in"
@@ -125,13 +136,15 @@ export default function Orders({ user, products }) {
             className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative" 
             onClick={e => e.stopPropagation()}
           >
-            {/* Modal Header */}
             <div className="bg-gradient-to-r from-gray-50 to-white p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 z-10">
               <div>
-                <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
-                  Invoice <span className="text-[#f68b1e]">#{selectedOrder.orderNumber}</span>
-                </h3>
-                <p className="text-xs text-gray-400 font-mono mt-1">UUID: {selectedOrder.id}</p>
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
+                    Invoice <span className="text-[#f68b1e]">#{selectedOrder.orderNumber}</span>
+                  </h3>
+                  {renderStatusBadge(selectedOrder.status)}
+                </div>
+                <p className="text-xs text-gray-400 font-mono mt-2">UUID: {selectedOrder.id}</p>
               </div>
               <button 
                 onClick={() => setSelectedOrder(null)}
@@ -142,7 +155,6 @@ export default function Orders({ user, products }) {
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Delivery Info Block */}
               <div className="bg-orange-50/50 border border-orange-100 rounded-xl p-5 space-y-4 shadow-inner">
                 <h4 className="text-xs font-bold text-[#f68b1e] uppercase tracking-wider border-b border-orange-100 pb-2">Delivery Instructions</h4>
                 
@@ -177,7 +189,6 @@ export default function Orders({ user, products }) {
                 </div>
               </div>
 
-              {/* Order Items List */}
               <div>
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 border-b border-gray-100 pb-2 flex items-center gap-1.5">
                   <ShoppingBag className="h-3.5 w-3.5" /> Items Purchased
@@ -208,7 +219,6 @@ export default function Orders({ user, products }) {
                 </div>
               </div>
 
-              {/* Notice */}
               <div className="bg-gray-50 p-4 rounded-xl text-center border border-gray-100">
                 <p className="text-sm text-gray-600 font-medium flex items-center justify-center gap-2">
                   Payment Method: <span className="font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-100">CASH ON DELIVERY</span>
@@ -223,3 +233,4 @@ export default function Orders({ user, products }) {
     </div>
   );
 }
+

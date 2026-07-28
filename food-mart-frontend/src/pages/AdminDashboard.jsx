@@ -3,11 +3,10 @@ import { Link } from 'react-router-dom';
 import { 
   Database, Store, PlusCircle, Tag, Package, Trash2, 
   Edit3, CheckCircle2, AlertCircle, X, Layers, Image as ImageIcon, 
-  Truck, Navigation, ExternalLink, ShoppingBag, FileText, Phone, MapPin
+  Truck, Navigation, ExternalLink, ShoppingBag, FileText, Phone, MapPin, Clock
 } from 'lucide-react';
 import apiClient from '../api/client';
 
-// ✅ Added 'user' to the accepted props
 export default function AdminDashboard({ user, categories, products, triggerReload }) {
   const [status, setStatus] = useState({ type: '', message: '' });
   const [activeTab, setActiveTab] = useState('orders');
@@ -22,14 +21,19 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
   const [orders, setOrders] = useState([]);
   const [viewOrder, setViewOrder] = useState(null);
 
-  // ✅ Safely extract the admin's ID to bypass cookies
   const adminId = user?.id || user?.user_id || user?.uuid || (user?.user && user.user.id);
 
   useEffect(() => {
     const fetchAdminOrders = async () => {
       try {
         const response = await apiClient.get('/orders');
-        setOrders(response.data.reverse());
+        let fetchedOrders = Array.isArray(response.data) ? response.data : [];
+        fetchedOrders.sort((a, b) => {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateB - dateA;
+        });
+        setOrders(fetchedOrders);
       } catch (error) {
         console.error("Failed to fetch admin orders:", error);
       }
@@ -65,16 +69,35 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
     }
   };
 
+  // ✅ NEW: HANDLE LIVE STATUS PIPELINE UPDATES
+  const handleUpdateStatus = async (orderId, newStatus) => {
+    try {
+      await apiClient.put(`/orders/${orderId}/status`, { status: newStatus });
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+      setViewOrder(prev => ({ ...prev, status: newStatus }));
+      displayAlert('success', `Order marked as ${newStatus.toUpperCase()}!`);
+    } catch (err) {
+      displayAlert('error', 'Failed to update delivery status.');
+    }
+  };
+
+  const renderStatusBadge = (orderStatus) => {
+    switch(orderStatus) {
+      case 'Delivered': return <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-black uppercase">Delivered</span>;
+      case 'Dispatched': return <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-[10px] font-black uppercase">Dispatched</span>;
+      case 'Processing': return <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-black uppercase">Processing</span>;
+      default: return <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-black uppercase">Pending</span>;
+    }
+  };
+
   const handleCategorySubmit = async (e) => {
     e.preventDefault();
     if (!catName.trim()) return;
     try {
       if (editingId) {
-        // ✅ Included user_id in payload
         await apiClient.put(`/categories/${editingId}`, { name: catName, user_id: adminId });
         displayAlert('success', `Category updated successfully!`);
       } else {
-        // ✅ Included user_id in payload
         await apiClient.post('/categories', { name: catName, user_id: adminId });
         displayAlert('success', `Category "${catName}" added successfully!`);
       }
@@ -89,7 +112,6 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
   const handleDeleteCategory = async (id) => {
     if (!window.confirm("Are you sure? Deleting this category might impact linked products!")) return;
     try {
-      // ✅ Included user_id in URL params for DELETE requests
       await apiClient.delete(`/categories/${id}?user_id=${adminId}`);
       displayAlert('success', 'Category deleted from database.');
       triggerReload();
@@ -101,7 +123,6 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
   const handleProductSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData();
-    // ✅ Append user_id securely to the FormData payload
     formData.append('user_id', adminId);
     
     formData.append('name', prodForm.name);
@@ -111,10 +132,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
     if (prodForm.brand) formData.append('brand', prodForm.brand);
     if (prodForm.package_size) formData.append('package_size', prodForm.package_size);
     if (prodForm.description) formData.append('description', prodForm.description);
-    
-    if (prodImage) {
-      formData.append('images', prodImage);
-    }
+    if (prodImage) formData.append('images', prodImage);
 
     try {
       if (editingId) {
@@ -147,7 +165,6 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
   const handleDeleteProduct = async (id) => {
     if (!window.confirm("Delete this product permanently?")) return;
     try {
-      // ✅ Included user_id in URL params for DELETE requests
       await apiClient.delete(`/products/${id}?user_id=${adminId}`);
       displayAlert('success', 'Product dropped from inventory.');
       triggerReload();
@@ -177,7 +194,6 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
           >
             End Session
           </button>
-          
           <Link to="/" className="flex items-center gap-2 text-xs font-bold bg-white/10 hover:bg-white/20 px-4 py-2.5 rounded-lg transition-colors border border-white/5">
             <Store className="h-4 w-4" /> Storefront
           </Link>
@@ -230,9 +246,9 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                       <thead>
                         <tr className="border-b border-gray-100 text-gray-400 font-semibold bg-gray-50/50">
                           <th className="p-3 rounded-tl-lg">Order ID</th>
-                          <th className="p-3">Items</th>
+                          <th className="p-3">Status</th>
                           <th className="p-3">Contact Number</th>
-                          <th className="p-3">GPS / Address</th>
+                          <th className="p-3">Address Details</th>
                           <th className="p-3 text-right rounded-tr-lg">Action</th>
                         </tr>
                       </thead>
@@ -247,8 +263,8 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                                 </span>
                                 <br/><span className="text-[10px] text-gray-400">UUID: {order.id.substring(0, 8)}</span>
                               </td>
-                              <td className="p-3 font-bold text-gray-800">
-                                {getItemsCount(order)} units
+                              <td className="p-3">
+                                {renderStatusBadge(order.status)}
                               </td>
                               <td className="p-3 text-gray-600 font-medium">
                                 {order.contact_phone || 'No phone'}
@@ -269,7 +285,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                                   onClick={() => setViewOrder({...order, orderNumber})}
                                   className="text-xs font-bold bg-[#f68b1e] text-white px-4 py-1.5 rounded hover:bg-orange-600 shadow-sm transition-colors"
                                 >
-                                  View Dispatch
+                                  View / Update
                                 </button>
                               </td>
                             </tr>
@@ -479,7 +495,10 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                 <h3 className="text-lg font-black text-white flex items-center gap-2">
                   Dispatch Invoice <span className="text-[#f68b1e]">#{viewOrder.orderNumber}</span>
                 </h3>
-                <p className="text-xs text-gray-400 font-mono mt-1">UUID: {viewOrder.id}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  {renderStatusBadge(viewOrder.status)}
+                  <p className="text-xs text-gray-400 font-mono">UUID: {viewOrder.id.substring(0, 8)}</p>
+                </div>
               </div>
               <button 
                 onClick={() => setViewOrder(null)}
@@ -556,27 +575,29 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                 </div>
               </div>
 
-              <div className="flex gap-4 pt-4 border-t border-gray-100">
-                <button 
-                  onClick={() => setViewOrder(null)}
-                  className="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors"
-                >
-                  Close
-                </button>
-                
-                {/* ✅ CANCEL AND RESTOCK BUTTON */}
+              {/* ✅ LIVE STATUS UPDATE PANEL */}
+              <div className="bg-gray-50 p-4 border-t border-gray-100">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Update Order Pipeline</h4>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => handleUpdateStatus(viewOrder.id, 'Pending')} className="flex-1 bg-white border border-gray-200 text-gray-600 text-xs font-bold py-2 rounded-lg hover:bg-gray-100 transition-colors">Pending</button>
+                  <button onClick={() => handleUpdateStatus(viewOrder.id, 'Processing')} className="flex-1 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold py-2 rounded-lg hover:bg-blue-100 transition-colors">Processing</button>
+                  <button onClick={() => handleUpdateStatus(viewOrder.id, 'Dispatched')} className="flex-1 bg-orange-50 border border-orange-200 text-orange-700 text-xs font-bold py-2 rounded-lg hover:bg-orange-100 transition-colors">Dispatched</button>
+                  <button onClick={() => handleUpdateStatus(viewOrder.id, 'Delivered')} className="flex-1 bg-green-50 border border-green-200 text-green-700 text-xs font-bold py-2 rounded-lg hover:bg-green-100 transition-colors">Delivered</button>
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-2">
                 <button 
                   onClick={() => handleCancelOrder(viewOrder.id)}
-                  className="flex-1 bg-red-50 text-red-600 font-bold py-3 rounded-xl hover:bg-red-100 transition-colors flex justify-center items-center gap-2 shadow-sm"
+                  className="flex-1 bg-red-50 text-red-600 text-sm font-bold py-3 rounded-xl hover:bg-red-100 transition-colors flex justify-center items-center gap-2 shadow-sm"
                 >
-                  <Trash2 className="h-4 w-4" /> Cancel & Restock
+                  <Trash2 className="h-4 w-4" /> Cancel & Return Stock
                 </button>
-
                 <button 
-                  className="flex-1 bg-green-500 text-white font-bold py-3 rounded-xl hover:bg-green-600 transition-colors flex justify-center items-center gap-2 shadow-sm"
-                  onClick={() => alert("Marked as dispatched! (Database toggle coming soon)")}
+                  onClick={() => setViewOrder(null)}
+                  className="flex-1 bg-gray-900 text-white text-sm font-bold py-3 rounded-xl hover:bg-gray-800 transition-colors"
                 >
-                  <CheckCircle2 className="h-5 w-5" /> Mark Dispatched
+                  Done
                 </button>
               </div>
               
@@ -588,4 +609,3 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
     </div>
   );
 }
-

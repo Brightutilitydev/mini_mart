@@ -88,6 +88,16 @@ class OrderRepo:
             storage.delete(item)
         storage.save()
         return True
+    @classmethod
+    def update_status(cls, order_id: str, new_status: str) -> bool:
+        """Update the fulfillment status of an order"""
+        order = cls.get(order_id)
+        if not order:
+            return False
+        order.status = new_status
+        order.save()
+        storage.save()
+        return True
 
     @classmethod
     def get_items(cls, order_id: str) -> list[OrderItem]:
