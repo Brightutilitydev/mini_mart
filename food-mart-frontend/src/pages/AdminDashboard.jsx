@@ -13,10 +13,11 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
   
   const [catName, setCatName] = useState('');
   const [editingId, setEditingId] = useState(null);
+  
+  // ✅ Added image_url to the form state
   const [prodForm, setProdForm] = useState({
-    name: '', price: '', brand: '', category_id: '', stock: 20, package_size: '', description: ''
+    name: '', price: '', brand: '', category_id: '', stock: 20, package_size: '', description: '', image_url: ''
   });
-  const [prodImage, setProdImage] = useState(null);
   
   const [orders, setOrders] = useState([]);
   const [viewOrder, setViewOrder] = useState(null);
@@ -69,7 +70,6 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
     }
   };
 
-  // ✅ NEW: HANDLE LIVE STATUS PIPELINE UPDATES
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
       await apiClient.put(`/orders/${orderId}/status`, { status: newStatus });
@@ -132,7 +132,9 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
     if (prodForm.brand) formData.append('brand', prodForm.brand);
     if (prodForm.package_size) formData.append('package_size', prodForm.package_size);
     if (prodForm.description) formData.append('description', prodForm.description);
-    if (prodImage) formData.append('images', prodImage);
+    
+    // ✅ Append the image URL string directly to the database payload
+    if (prodForm.image_url) formData.append('image_url', prodForm.image_url);
 
     try {
       if (editingId) {
@@ -143,8 +145,9 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
         displayAlert('success', `Product "${prodForm.name}" created!`);
       }
       setEditingId(null);
-      setProdForm({ name: '', price: '', brand: '', category_id: '', stock: 20, package_size: '', description: '' });
-      setProdImage(null); 
+      
+      // ✅ Reset form includes image_url
+      setProdForm({ name: '', price: '', brand: '', category_id: '', stock: 20, package_size: '', description: '', image_url: '' });
       triggerReload();
     } catch (err) {
       displayAlert('error', err.response?.data?.error || 'Product operation failed.');
@@ -154,11 +157,15 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
   const handleEditProductClick = (product) => {
     setEditingId(product.id);
     setProdForm({
-      name: product.name, price: product.price, brand: product.brand || '',
-      category_id: product.category_id || '', stock: product.stock,
-      package_size: product.package_size || '', description: product.description || ''
+      name: product.name, 
+      price: product.price, 
+      brand: product.brand || '',
+      category_id: product.category_id || '', 
+      stock: product.stock,
+      package_size: product.package_size || '', 
+      description: product.description || '',
+      image_url: product.image_url || '' // ✅ Populate existing URL
     });
-    setProdImage(null); 
     setActiveTab('products');
   };
 
@@ -334,7 +341,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                           {editingId ? 'Modify Product' : 'Add Product'}
                         </h3>
                         {editingId && (
-                          <button onClick={() => { setEditingId(null); setProdForm({ name: '', price: '', brand: '', category_id: '', stock: 20, package_size: '', description: '' }); setProdImage(null); }} className="text-xs font-bold text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                          <button onClick={() => { setEditingId(null); setProdForm({ name: '', price: '', brand: '', category_id: '', stock: 20, package_size: '', description: '', image_url: '' }); }} className="text-xs font-bold text-gray-400 hover:text-gray-600 flex items-center gap-1">
                             <X className="h-3.5 w-3.5" /> Clear Edit
                           </button>
                         )}
@@ -371,17 +378,21 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Package Sizing</label>
                           <input type="text" placeholder="e.g. 50cl, 1kg" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={prodForm.package_size} onChange={e => setProdForm({...prodForm, package_size: e.target.value})} />
                         </div>
+                        
+                        {/* ✅ URL Text Input instead of File Input */}
                         <div>
                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
-                            <ImageIcon className="h-3.5 w-3.5" /> Product Image
+                            <ImageIcon className="h-3.5 w-3.5" /> Product Image URL
                           </label>
                           <input 
-                            key={editingId || 'new'} 
-                            type="file" accept="image/*" 
-                            onChange={(e) => setProdImage(e.target.files[0])} 
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#f68b1e] file:mr-4 file:py-1.5 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-[#f68b1e] hover:file:bg-orange-100 transition-colors cursor-pointer" 
+                            type="url" 
+                            placeholder="e.g. https://example.com/image.jpg"
+                            value={prodForm.image_url}
+                            onChange={(e) => setProdForm({...prodForm, image_url: e.target.value})} 
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" 
                           />
                         </div>
+
                         <button type="submit" className="w-full bg-[#f68b1e] text-white py-2.5 rounded-lg text-sm font-bold hover:bg-orange-600 transition-colors shadow-sm mt-4">
                           {editingId ? 'Apply Database Changes' : 'Commit to Storage'}
                         </button>
@@ -480,7 +491,6 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
         </div>
       </div>
 
-      {/* ✅ ADMIN DISPATCH MODAL OVERLAY */}
       {viewOrder && (
         <div 
           className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in"
@@ -575,7 +585,6 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                 </div>
               </div>
 
-              {/* ✅ LIVE STATUS UPDATE PANEL */}
               <div className="bg-gray-50 p-4 border-t border-gray-100">
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Update Order Pipeline</h4>
                 <div className="flex flex-wrap gap-2">
