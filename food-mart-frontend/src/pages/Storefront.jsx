@@ -49,7 +49,7 @@ export default function Storefront({ user, handleLogout, products, categories, a
       <nav className="bg-white shadow-sm p-3 flex justify-between items-center px-4 sm:px-8 sticky top-0 z-40">
         <Link to="/" className="flex items-center">
           {/* ✅ FIXED TYPO IN THE IMAGE SRC */}
-          <img src="/logo-horizontal.jpg" alt="C_Express Mini-Mart" className="h-12 object-contain mix-blend-multiply" />
+          <img src="/logo-vertical.png" alt="C_Express Mini-Mart" className="h-12 object-contain mix-blend-multiply" />
         </Link>
         
         <div className="hidden md:flex flex-1 max-w-xl mx-8 relative">
@@ -246,7 +246,7 @@ export default function Storefront({ user, handleLogout, products, categories, a
 
       <footer className="bg-[#282828] text-white py-12 mt-auto">
         <div className="max-w-7xl mx-auto px-4 flex flex-col items-center text-center">
-          <img src="/logo-circular.jpg" alt="C_Express Mini-Mart" className="h-20 w-20 rounded-full mb-4 shadow-lg object-contain bg-white" />
+          <img src="/logo-circular.png" alt="C_Express Mini-Mart" className="h-20 w-20 rounded-full mb-4 shadow-lg object-contain bg-white" />
           <p className="text-gray-400 text-sm">© 2026 C_Express Mini-Mart. All Rights Reserved.</p>
         </div>
       </footer>
