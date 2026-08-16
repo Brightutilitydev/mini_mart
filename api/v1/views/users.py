@@ -54,15 +54,27 @@ def remove_user(user_id):
 @app_views.route('/store-settings', methods=['GET'])
 def get_store_settings():
     """Public endpoint for the cart to fetch the Admin's bank details"""
-    admin = storage.get_by_attr(User, is_admin=True)
-    if not admin:
-        admin = storage.get_by_attr(User, is_admin=1)
+    
+    # 🚨 SPRINT FIX: Iterate through all users to find the active admin
+    admin = None
+    all_users = UserRepo.all()
+    for u in all_users:
+        if getattr(u, 'is_admin', False) in [True, 1]:
+            admin = u
+            break
 
     if admin:
+        # Pull the values safely, defaulting to empty strings if missing
+        b_name = getattr(admin, "bank_name", "")
+        a_num = getattr(admin, "account_number", "")
+        a_name = getattr(admin, "account_name", "")
+        
+        print(f"📡 Serving Store Settings: Bank={b_name}, Acc={a_num}")
+        
         return jsonify({
-            "bank_name": getattr(admin, "bank_name", ""),
-            "account_number": getattr(admin, "account_number", ""),
-            "account_name": getattr(admin, "account_name", "")
+            "bank_name": b_name if b_name is not None else "",
+            "account_number": a_num if a_num is not None else "",
+            "account_name": a_name if a_name is not None else ""
         }), 200
 
     return jsonify({"error": "Store settings not found"}), 404
