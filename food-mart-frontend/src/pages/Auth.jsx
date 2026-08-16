@@ -62,7 +62,7 @@ export default function Auth({ setUser }) {
       
       {/* ✅ BRAND LOGO ON AUTH PAGE */}
       <Link to="/" className="mb-8 text-center flex flex-col items-center gap-3 hover:opacity-80 transition-opacity">
-        <img src="/logo-vertical.png" alt="C_Express Mini-Mart" className="h-28 w-28 rounded-full shadow-md object-contain bg-white border-2 border-white" />
+        <img src="/logo-vertical.png" alt="CEXPRESS MINIMART" className="h-28 w-28 rounded-full shadow-md object-contain bg-white border-2 border-white" />
         <span className="text-gray-500 text-sm font-medium flex items-center gap-1"><Store className="h-4 w-4"/> Return to Storefront</span>
       </Link>
 

@@ -64,7 +64,7 @@ export default function AdminLogin({ setUser }) {
                 autoFocus
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@foodmart.com"
+                placeholder="admin@cexpressminimart.com"
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f68b1e] text-sm font-medium"
               />
             </div>

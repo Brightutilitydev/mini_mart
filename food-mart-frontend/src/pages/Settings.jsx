@@ -67,7 +67,7 @@ export default function Settings({ user, setUser }) {
           <Link to="/" className="flex items-center gap-2 text-gray-500 hover:text-[#f68b1e] font-medium transition-colors">
             <ArrowLeft className="h-5 w-5" /> Back to Storefront
           </Link>
-          <span className="font-black text-[#f68b1e] text-2xl tracking-tight">FOOD MART</span>
+          <span className="font-black text-[#f68b1e] text-2xl tracking-tight">CEXPRESS MINIMART</span>
         </div>
       </nav>
 
