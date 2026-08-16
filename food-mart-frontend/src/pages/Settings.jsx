@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { ArrowLeft, User, MapPin, Phone, CheckCircle2, AlertCircle, Save, Mail, MessageCircle, Shield, Lock } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Phone, CheckCircle2, AlertCircle, Save, Mail, MessageCircle, Shield, Lock, CreditCard } from 'lucide-react';
 import apiClient from '../api/client';
 
 export default function Settings({ user, setUser }) {
@@ -9,7 +9,10 @@ export default function Settings({ user, setUser }) {
   const [formData, setFormData] = useState({
     phone_number: actualUser?.phone_number || '',
     whatsapp_number: actualUser?.whatsapp_number || '',
-    address: actualUser?.address || ''
+    address: actualUser?.address || '',
+    bank_name: actualUser?.bank_name || '',
+    account_number: actualUser?.account_number || '',
+    account_name: actualUser?.account_name || ''
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -22,6 +25,8 @@ export default function Settings({ user, setUser }) {
 
   // Protect the route
   if (!actualUser) return <Navigate to="/auth" />;
+
+  const isAdmin = actualUser.is_admin === true || actualUser.is_admin === 1;
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -102,6 +107,50 @@ export default function Settings({ user, setUser }) {
           <form onSubmit={handleSave} className="p-6 md:p-8 space-y-8">
             
             {/* Contact Details Section */}
+            {isAdmin && (
+              <div className="bg-orange-50/50 p-6 rounded-xl border border-orange-100">
+                <h4 className="text-xs font-bold text-[#f68b1e] uppercase tracking-wider mb-4 border-b border-orange-100 pb-2 flex items-center gap-1">
+                  <CreditCard className="h-3.5 w-3.5" /> Store Receiving Account Details (Admin Only)
+                </h4>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Bank Name</label>
+                    <input 
+                      type="text" 
+                      value={formData.bank_name} 
+                      onChange={(e) => setFormData({...formData, bank_name: e.target.value})}
+                      placeholder="e.g. Access Bank"
+                      className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#f68b1e] outline-none transition-all"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Account Number</label>
+                      <input 
+                        type="text" 
+                        value={formData.account_number} 
+                        onChange={(e) => setFormData({...formData, account_number: e.target.value})}
+                        placeholder="e.g. 0123456789"
+                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#f68b1e] outline-none transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Account Name</label>
+                      <input 
+                        type="text" 
+                        value={formData.account_name} 
+                        onChange={(e) => setFormData({...formData, account_name: e.target.value})}
+                        placeholder="e.g. C Express Mini Mart"
+                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-[#f68b1e] outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-orange-600 mt-2 font-medium">These details will be displayed to all customers at checkout for direct bank transfers.</p>
+                </div>
+              </div>
+            )}
+
             <div>
               <h4 className="text-xs font-bold text-[#f68b1e] uppercase tracking-wider mb-4 border-b border-orange-100 pb-2 flex items-center gap-1">
                 <Phone className="h-3.5 w-3.5" /> Delivery & Contact

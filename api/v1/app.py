@@ -76,7 +76,10 @@ swagger_template = {
                 "whatsapp_number": {"type": "string"},
                 "address": {"type": "string"},
                 "password": {"type": "string"},
-                "is_admin": {"type": "bool"}
+                "is_admin": {"type": "bool"},
+                "bank_name": {"type": "string"},
+                "account_number": {"type": "string"},
+                "account_name": {"type": "string"}
             },
             "required": ["email", "first_name", "last_name", "password", "whatsapp_number"]
         },

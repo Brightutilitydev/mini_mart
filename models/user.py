@@ -17,19 +17,34 @@ class User(BaseModel, Base):
     whatsapp_number = Column(String(32), unique=True, nullable=False, index=True)
     address = Column(String(256), nullable=True)
     password = Column(String(256), nullable=False)
-    
+
     # The crucial admin flag
     is_admin = Column(Boolean, default=False)
-    
+
+    # New payment details supported by the app
+    bank_name = Column(String(100), nullable=True)
+    account_number = Column(String(50), nullable=True)
+    account_name = Column(String(100), nullable=True)
+
     orders = relationship("Order", back_populates="user", cascade="all, delete-orphan")
 
     def __init__(self, *args, **kwargs):
         """initializes user"""
         super().__init__(*args, **kwargs)
+        self.first_name = kwargs.get("first_name")
+        self.last_name = kwargs.get("last_name")
+        self.email = kwargs.get("email")
+        self.phone_number = kwargs.get("phone_number")
+        self.whatsapp_number = kwargs.get("whatsapp_number")
+        self.address = kwargs.get("address")
+        self.is_admin = kwargs.get("is_admin", False)
+        self.bank_name = kwargs.get("bank_name", "")
+        self.account_number = kwargs.get("account_number", "")
+        self.account_name = kwargs.get("account_name", "")
 
     def __setattr__(self, name, value):
         """sets a password with hashing"""
-        if name == "password":
+        if name == "password" and value is not None:
             value = generate_password_hash(value)
         super().__setattr__(name, value)
 
@@ -41,6 +56,9 @@ class User(BaseModel, Base):
         """Forces the is_admin flag to be sent to React, and hides the password"""
         user_dict = super().to_dict()
         user_dict['is_admin'] = getattr(self, 'is_admin', False)
+        user_dict['bank_name'] = getattr(self, 'bank_name', '')
+        user_dict['account_number'] = getattr(self, 'account_number', '')
+        user_dict['account_name'] = getattr(self, 'account_name', '')
         if 'password' in user_dict:
-            del user_dict['password'] # Never send password hashes to frontend!
+            del user_dict['password']  # Never send password hashes to frontend!
         return user_dict

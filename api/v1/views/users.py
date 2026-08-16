@@ -3,6 +3,8 @@
 
 from api.v1.views import app_views
 from flask import jsonify, request
+from models import storage
+from models.user import User
 from repositories.user_repo import UserRepo
 
 @app_views.route('/users', methods=['GET'])
@@ -47,3 +49,20 @@ def remove_user(user_id):
     if deleted:
         return jsonify({"success": "OK"}), 200
     return jsonify({"error": "user not found"}), 404
+
+
+@app_views.route('/store-settings', methods=['GET'])
+def get_store_settings():
+    """Public endpoint for the cart to fetch the Admin's bank details"""
+    admin = storage.get_by_attr(User, is_admin=True)
+    if not admin:
+        admin = storage.get_by_attr(User, is_admin=1)
+
+    if admin:
+        return jsonify({
+            "bank_name": getattr(admin, "bank_name", ""),
+            "account_number": getattr(admin, "account_number", ""),
+            "account_name": getattr(admin, "account_name", "")
+        }), 200
+
+    return jsonify({"error": "Store settings not found"}), 404

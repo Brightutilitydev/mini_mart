@@ -34,6 +34,9 @@ class UserRepo:
             whatsapp_number=kwargs["whatsapp_number"],
             address=kwargs.get("address"),
             is_admin=kwargs.get("is_admin", False),
+            bank_name=kwargs.get("bank_name"),
+            account_number=kwargs.get("account_number"),
+            account_name=kwargs.get("account_name"),
         )
         user.password = kwargs["password"]
 

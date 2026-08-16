@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Minus, Plus, Trash2, CheckCircle2, AlertCircle, ShoppingBag, ArrowLeft, MapPin, CreditCard, Phone } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, Trash2, CheckCircle2, AlertCircle, ShoppingBag, ArrowLeft, MapPin, CreditCard, Phone, Landmark } from 'lucide-react';
 import apiClient from '../api/client';
 
 export default function Cart({ cart, clearCart, updateQuantity, removeFromCart, user, triggerReload }) {
@@ -11,6 +11,20 @@ export default function Cart({ cart, clearCart, updateQuantity, removeFromCart, 
   
   const [deliveryAddress, setDeliveryAddress] = useState(user?.address || '');
   const [contactPhone, setContactPhone] = useState(user?.whatsapp_number || user?.phone_number || '');
+
+  const [storeSettings, setStoreSettings] = useState(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await apiClient.get('/store-settings');
+        setStoreSettings(res.data);
+      } catch (e) {
+        console.error('Could not fetch store settings');
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const handleCheckout = async () => {
     if (!user) {
@@ -148,23 +162,40 @@ export default function Cart({ cart, clearCart, updateQuantity, removeFromCart, 
               </div>
 
               <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+                <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-6">
+                  <h4 className="text-xs font-bold text-orange-800 uppercase mb-3 flex items-center gap-1.5 border-b border-orange-200/50 pb-2">
+                    <Landmark className="h-4 w-4" /> Direct Bank Transfer
+                  </h4>
+                  {storeSettings ? (
+                    <div className="space-y-1.5 text-sm text-orange-950">
+                      <p className="flex justify-between"><span className="text-orange-700/80 font-semibold">Bank:</span> {storeSettings.bank_name || 'Pending Setup'}</p>
+                      <p className="flex justify-between items-center">
+                        <span className="text-orange-700/80 font-semibold">Account:</span>
+                        <span className="font-mono font-bold text-base tracking-wider bg-white px-2 py-0.5 rounded border border-orange-200">{storeSettings.account_number || 'N/A'}</span>
+                      </p>
+                      <p className="flex justify-between"><span className="text-orange-700/80 font-semibold">Name:</span> <span className="text-right">{storeSettings.account_name || 'N/A'}</span></p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-orange-800 animate-pulse">Loading payment details...</p>
+                  )}
+                  <p className="text-[11px] leading-snug text-orange-700 mt-4 font-medium bg-orange-100/50 p-2 rounded">
+                    Please transfer the exact total amount to the account above, then click 'Confirm Order'. Your items will be dispatched upon payment confirmation.
+                  </p>
+                </div>
+
                 <div className="flex justify-between text-gray-500 text-sm mb-2.5">
                   <span>Items Subtotal</span><span className="font-medium text-gray-800">₦{total.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-gray-500 text-sm mb-4">
                   <span>Standard Delivery</span><span className="text-green-600 text-xs font-semibold bg-green-50 px-2 py-0.5 rounded-full">FREE</span>
                 </div>
-                <div className="flex justify-between items-center text-sm mb-6 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                  <span className="text-gray-600 flex items-center gap-2 font-bold"><CreditCard className="h-4 w-4" /> Payment</span>
-                  <span className="text-green-600 font-bold text-xs bg-green-50 px-2 py-1 rounded">CASH ON DELIVERY</span>
-                </div>
-                <div className="flex justify-between text-gray-900 font-extrabold text-lg border-t border-gray-100 pt-4 mb-6">
-                  <span>Total Price</span><span className="text-[#f68b1e]">₦{total.toLocaleString()}</span>
+                <div className="flex justify-between text-gray-900 font-extrabold text-xl border-t border-gray-100 pt-4 mb-6">
+                  <span>Total Amount</span><span className="text-[#f68b1e]">₦{total.toLocaleString()}</span>
                 </div>
                 
                 {user ? (
                   <button onClick={handleCheckout} disabled={isOrdering} className="w-full bg-[#f68b1e] text-white py-3.5 rounded-lg font-black hover:bg-orange-600 transition-all shadow-md transform hover:scale-[1.01] flex items-center justify-center text-lg">
-                    {isOrdering ? 'PLACING ORDER...' : 'PLACE ORDER NOW'}
+                    {isOrdering ? 'PROCESSING...' : 'CONFIRM ORDER'}
                   </button>
                 ) : (
                   <Link to="/auth" className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-bold hover:bg-gray-200 transition-colors text-sm text-center block">LOG IN TO CHECKOUT</Link>

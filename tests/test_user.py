@@ -134,3 +134,20 @@ class TestUser(unittest.TestCase):
         self.user.password = "C_Express_mini_mart"
         self.assertTrue(self.user.check_password(self.password))
         self.assertNotEqual(self.user.password, self.password)
+
+    def test_payment_fields_are_available_and_hidden_from_response(self):
+        """tests payment fields are stored and exposed without leaking password"""
+        self.user.bank_name = "First Bank"
+        self.user.account_number = "0123456789"
+        self.user.account_name = "Mini Mart Ltd"
+        self.user.password = "C_Express_mini_mart"
+
+        self.assertEqual(self.user.bank_name, "First Bank")
+        self.assertEqual(self.user.account_number, "0123456789")
+        self.assertEqual(self.user.account_name, "Mini Mart Ltd")
+
+        user_dict = self.user.to_dict()
+        self.assertEqual(user_dict["bank_name"], "First Bank")
+        self.assertEqual(user_dict["account_number"], "0123456789")
+        self.assertEqual(user_dict["account_name"], "Mini Mart Ltd")
+        self.assertNotIn("password", user_dict)
