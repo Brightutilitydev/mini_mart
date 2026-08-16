@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { 
   Database, Store, PlusCircle, Tag, Package, Trash2, 
   Edit3, CheckCircle2, AlertCircle, X, Layers, Image as ImageIcon, 
-  Truck, Navigation, ExternalLink, ShoppingBag, FileText, Phone, MapPin, Clock
+  Truck, Navigation, ExternalLink, ShoppingBag, FileText, Phone, MapPin, Clock, Search
 } from 'lucide-react';
 import apiClient from '../api/client';
 
@@ -11,13 +11,15 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
   const [status, setStatus] = useState({ type: '', message: '' });
   const [activeTab, setActiveTab] = useState('orders');
   
+  // ✅ NEW: Search State
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const [catName, setCatName] = useState('');
   const [editingId, setEditingId] = useState(null);
-  
-  // ✅ Added image_url to the form state
   const [prodForm, setProdForm] = useState({
     name: '', price: '', brand: '', category_id: '', stock: 20, package_size: '', description: '', image_url: ''
   });
+  const [prodImage, setProdImage] = useState(null);
   
   const [orders, setOrders] = useState([]);
   const [viewOrder, setViewOrder] = useState(null);
@@ -132,8 +134,6 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
     if (prodForm.brand) formData.append('brand', prodForm.brand);
     if (prodForm.package_size) formData.append('package_size', prodForm.package_size);
     if (prodForm.description) formData.append('description', prodForm.description);
-    
-    // ✅ Append the image URL string directly to the database payload
     if (prodForm.image_url) formData.append('image_url', prodForm.image_url);
 
     try {
@@ -145,8 +145,6 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
         displayAlert('success', `Product "${prodForm.name}" created!`);
       }
       setEditingId(null);
-      
-      // ✅ Reset form includes image_url
       setProdForm({ name: '', price: '', brand: '', category_id: '', stock: 20, package_size: '', description: '', image_url: '' });
       triggerReload();
     } catch (err) {
@@ -157,14 +155,10 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
   const handleEditProductClick = (product) => {
     setEditingId(product.id);
     setProdForm({
-      name: product.name, 
-      price: product.price, 
-      brand: product.brand || '',
-      category_id: product.category_id || '', 
-      stock: product.stock,
-      package_size: product.package_size || '', 
-      description: product.description || '',
-      image_url: product.image_url || '' // ✅ Populate existing URL
+      name: product.name, price: product.price, brand: product.brand || '',
+      category_id: product.category_id || '', stock: product.stock,
+      package_size: product.package_size || '', description: product.description || '',
+      image_url: product.image_url || '' 
     });
     setActiveTab('products');
   };
@@ -179,6 +173,25 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
       displayAlert('error', err.response?.data?.error || 'Failed to delete product.');
     }
   };
+
+  // ✅ NEW: DYNAMIC FILTERING LOGIC
+  // Calculate order numbers FIRST so they don't break when searching
+  const processedOrders = orders.map((o, idx) => ({ ...o, orderNumber: orders.length - idx }));
+  
+  const filteredOrders = processedOrders.filter(o => 
+    o.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (o.contact_phone && o.contact_phone.includes(searchQuery)) ||
+    o.orderNumber.toString().includes(searchQuery)
+  );
+
+  const filteredProducts = products.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (p.brand && p.brand.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const filteredCategories = categories.filter(c => 
+    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-12">
@@ -201,6 +214,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
           >
             End Session
           </button>
+          
           <Link to="/" className="flex items-center gap-2 text-xs font-bold bg-white/10 hover:bg-white/20 px-4 py-2.5 rounded-lg transition-colors border border-white/5">
             <Store className="h-4 w-4" /> Storefront
           </Link>
@@ -208,23 +222,43 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-200 pb-5 mb-8 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-200 pb-5 mb-6 gap-4">
           <div>
             <h1 className="text-2xl font-black text-gray-950 tracking-tight">System Administration</h1>
             <p className="text-sm text-gray-500">Manage products, categories, and fulfill incoming orders.</p>
           </div>
           
           <div className="flex bg-gray-100 p-1 rounded-xl w-full md:w-auto overflow-x-auto">
-            <button onClick={() => { setActiveTab('orders'); setEditingId(null); }} className={`px-5 py-2 whitespace-nowrap rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'orders' ? 'bg-white text-[#f68b1e] shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+            <button onClick={() => { setActiveTab('orders'); setEditingId(null); setSearchQuery(''); }} className={`px-5 py-2 whitespace-nowrap rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'orders' ? 'bg-white text-[#f68b1e] shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
               <Truck className="h-4 w-4" /> Incoming Orders
             </button>
-            <button onClick={() => { setActiveTab('products'); setEditingId(null); }} className={`px-5 py-2 whitespace-nowrap rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'products' ? 'bg-white text-[#f68b1e] shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+            <button onClick={() => { setActiveTab('products'); setEditingId(null); setSearchQuery(''); }} className={`px-5 py-2 whitespace-nowrap rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'products' ? 'bg-white text-[#f68b1e] shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
               <Package className="h-4 w-4" /> Products Inventory
             </button>
-            <button onClick={() => { setActiveTab('categories'); setEditingId(null); }} className={`px-5 py-2 whitespace-nowrap rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'categories' ? 'bg-white text-[#f68b1e] shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+            <button onClick={() => { setActiveTab('categories'); setEditingId(null); setSearchQuery(''); }} className={`px-5 py-2 whitespace-nowrap rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'categories' ? 'bg-white text-[#f68b1e] shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
               <Layers className="h-4 w-4" /> Categories
             </button>
           </div>
+        </div>
+
+        {/* ✅ NEW: UNIVERSAL SEARCH BAR */}
+        <div className="mb-8 relative max-w-2xl">
+          <input 
+            type="text" 
+            placeholder={`Search ${activeTab} data...`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e] shadow-sm transition-all"
+          />
+          <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')} 
+              className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-0.5"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
         {status.message && (
@@ -235,64 +269,68 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* ORDERS TAB */}
           {activeTab === 'orders' && (
             <div className="lg:col-span-3">
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-6 flex items-center gap-2">
-                  <FileText className="h-4 w-4" /> Customer Purchase Orders
-                </h3>
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                    <FileText className="h-4 w-4" /> Customer Purchase Orders
+                  </h3>
+                  {searchQuery && <span className="text-xs font-bold text-[#f68b1e] bg-orange-50 px-2 py-1 rounded">{filteredOrders.length} Results Found</span>}
+                </div>
                 
-                {orders.length === 0 ? (
+                {filteredOrders.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <Truck className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                    <p>No incoming orders found in the database.</p>
+                    <p>{searchQuery ? "No matching orders found." : "No incoming orders found in the database."}</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-sm">
                       <thead>
-                        <tr className="border-b border-gray-100 text-gray-400 font-semibold bg-gray-50/50">
-                          <th className="p-3 rounded-tl-lg">Order ID</th>
-                          <th className="p-3">Status</th>
-                          <th className="p-3">Contact Number</th>
-                          <th className="p-3">Address Details</th>
-                          <th className="p-3 text-right rounded-tr-lg">Action</th>
+                        <tr className="border-b border-gray-200 text-gray-500 font-bold bg-gray-50/50 uppercase text-xs tracking-wider">
+                          <th className="p-4 rounded-tl-lg">Order Number</th>
+                          <th className="p-4">Items</th>
+                          <th className="p-4">Contact Number</th>
+                          <th className="p-4">Address Details</th>
+                          <th className="p-4 text-right rounded-tr-lg">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {orders.map((order, idx) => {
-                          const orderNumber = orders.length - idx;
+                        {filteredOrders.map((order) => {
                           return (
                             <tr key={order.id} className="hover:bg-orange-50/30 transition-colors group">
-                              <td className="p-3 font-mono text-xs text-gray-600">
-                                <span className="bg-[#f68b1e] text-white text-xs font-black px-2 py-0.5 rounded uppercase tracking-wider mr-2">
-                                  Order #{orderNumber}
+                              <td className="p-4">
+                                <div className="font-black text-gray-900 text-sm">Order #{order.orderNumber}</div>
+                                <div className="font-mono text-[10px] text-gray-400 mt-0.5">UUID: {order.id.substring(0, 8)}</div>
+                              </td>
+                              <td className="p-4 font-bold text-gray-800">
+                                <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded text-xs">
+                                  {getItemsCount(order)} units
                                 </span>
-                                <br/><span className="text-[10px] text-gray-400">UUID: {order.id.substring(0, 8)}</span>
                               </td>
-                              <td className="p-3">
-                                {renderStatusBadge(order.status)}
-                              </td>
-                              <td className="p-3 text-gray-600 font-medium">
+                              <td className="p-4 text-gray-600 font-medium">
                                 {order.contact_phone || 'No phone'}
                               </td>
-                              <td className="p-3">
+                              <td className="p-4">
                                 {order.gps_link ? (
-                                  <span className="text-blue-600 font-bold flex items-center gap-1 text-xs bg-blue-50 px-2 py-1 rounded w-max">
-                                    <Navigation className="h-3 w-3" /> GPS Provided
+                                  <span className="text-blue-600 font-bold flex items-center gap-1 text-xs bg-blue-50 px-2.5 py-1 rounded w-max border border-blue-100">
+                                    <Navigation className="h-3 w-3" /> GPS Location Attached
                                   </span>
                                 ) : (
-                                  <span className="text-gray-500 text-xs truncate max-w-[150px] inline-block">
+                                  <span className="text-gray-500 text-xs truncate max-w-[200px] inline-block font-medium">
                                     {order.delivery_address || 'Not Provided'}
                                   </span>
                                 )}
                               </td>
-                              <td className="p-3 text-right">
+                              <td className="p-4 text-right">
                                 <button 
-                                  onClick={() => setViewOrder({...order, orderNumber})}
-                                  className="text-xs font-bold bg-[#f68b1e] text-white px-4 py-1.5 rounded hover:bg-orange-600 shadow-sm transition-colors"
+                                  onClick={() => setViewOrder(order)}
+                                  className="text-xs font-bold bg-gray-900 text-white px-5 py-2 rounded-lg hover:bg-[#f68b1e] shadow-sm transition-all flex items-center gap-2 ml-auto"
                                 >
-                                  View / Update
+                                  View Dispatch <ExternalLink className="h-3.5 w-3.5" />
                                 </button>
                               </td>
                             </tr>
@@ -306,6 +344,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
             </div>
           )}
 
+          {/* PRODUCTS & CATEGORIES TABS */}
           {activeTab !== 'orders' && (
             <>
               <div className="lg:col-span-1">
@@ -378,8 +417,6 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Package Sizing</label>
                           <input type="text" placeholder="e.g. 50cl, 1kg" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={prodForm.package_size} onChange={e => setProdForm({...prodForm, package_size: e.target.value})} />
                         </div>
-                        
-                        {/* ✅ URL Text Input instead of File Input */}
                         <div>
                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
                             <ImageIcon className="h-3.5 w-3.5" /> Product Image URL
@@ -406,81 +443,96 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                   {activeTab === 'categories' ? (
                     <div>
-                      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Database Categories Records</h3>
-                      <div className="divide-y divide-gray-100">
-                        {categories.map(cat => (
-                          <div key={cat.id} className="py-3 flex justify-between items-center group">
-                            <div className="flex items-center gap-2">
-                              <Tag className="h-4 w-4 text-[#f68b1e]" />
-                              <span className="font-medium text-gray-800 text-sm">{cat.name}</span>
-                              <span className="text-[10px] text-gray-300 font-mono">({cat.id.substring(0,8)})</span>
-                            </div>
-                            <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => { setEditingId(cat.id); setCatName(cat.name); }} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md">
-                                <Edit3 className="h-4 w-4" />
-                              </button>
-                              <button onClick={() => handleDeleteCategory(cat.id)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md">
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Database Categories Records</h3>
+                        {searchQuery && <span className="text-xs font-bold text-[#f68b1e] bg-orange-50 px-2 py-1 rounded">{filteredCategories.length} Results</span>}
                       </div>
+                      {filteredCategories.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400">No categories found matching "{searchQuery}".</div>
+                      ) : (
+                        <div className="divide-y divide-gray-100">
+                          {filteredCategories.map(cat => (
+                            <div key={cat.id} className="py-3 flex justify-between items-center group">
+                              <div className="flex items-center gap-2">
+                                <Tag className="h-4 w-4 text-[#f68b1e]" />
+                                <span className="font-medium text-gray-800 text-sm">{cat.name}</span>
+                                <span className="text-[10px] text-gray-300 font-mono">({cat.id.substring(0,8)})</span>
+                              </div>
+                              <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => { setEditingId(cat.id); setCatName(cat.name); }} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md">
+                                  <Edit3 className="h-4 w-4" />
+                                </button>
+                                <button onClick={() => handleDeleteCategory(cat.id)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div>
-                      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">Warehouse SKU Records</h3>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse text-sm">
-                          <thead>
-                            <tr className="border-b border-gray-100 text-gray-400 font-semibold">
-                              <th className="pb-3">Product</th>
-                              <th className="pb-3">Category</th>
-                              <th className="pb-3">Price</th>
-                              <th className="pb-3">Stock</th>
-                              <th className="pb-3 text-right">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
-                            {products.map(prod => (
-                              <tr key={prod.id} className="hover:bg-gray-50/50 transition-colors group">
-                                <td className="py-3.5 font-medium text-gray-900 flex items-center gap-3">
-                                  {prod.image_url ? (
-                                    <img src={prod.image_url} alt={prod.name} className="w-8 h-8 rounded object-cover border border-gray-200" />
-                                  ) : (
-                                    <div className="w-8 h-8 rounded bg-gray-100 border border-gray-200 flex items-center justify-center">
-                                      <ImageIcon className="h-4 w-4 text-gray-400" />
-                                    </div>
-                                  )}
-                                  <div>
-                                    <div>{prod.name}</div>
-                                    <div className="text-xs text-gray-400 font-normal">{prod.brand || 'No Brand'}</div>
-                                  </div>
-                                </td>
-                                <td className="py-3.5 text-gray-500">
-                                  {categories.find(c => c.id === prod.category_id)?.name || 'Unlinked'}
-                                </td>
-                                <td className="py-3.5 font-bold text-gray-800">₦{parseFloat(prod.price).toLocaleString()}</td>
-                                <td className="py-3.5">
-                                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${prod.stock > 5 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                                    {prod.stock} units
-                                  </span>
-                                </td>
-                                <td className="py-3.5 text-right">
-                                  <div className="flex justify-end gap-1">
-                                    <button onClick={() => handleEditProductClick(prod)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md">
-                                      <Edit3 className="h-4 w-4" />
-                                    </button>
-                                    <button onClick={() => handleDeleteProduct(prod.id)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md">
-                                      <Trash2 className="h-4 w-4" />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Warehouse SKU Records</h3>
+                        {searchQuery && <span className="text-xs font-bold text-[#f68b1e] bg-orange-50 px-2 py-1 rounded">{filteredProducts.length} Results</span>}
                       </div>
+                      
+                      {filteredProducts.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400">No products found matching "{searchQuery}".</div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-100 text-gray-400 font-semibold">
+                                <th className="pb-3">Product</th>
+                                <th className="pb-3">Category</th>
+                                <th className="pb-3">Price</th>
+                                <th className="pb-3">Stock</th>
+                                <th className="pb-3 text-right">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {filteredProducts.map(prod => (
+                                <tr key={prod.id} className="hover:bg-gray-50/50 transition-colors group">
+                                  <td className="py-3.5 font-medium text-gray-900 flex items-center gap-3">
+                                    {prod.image_url ? (
+                                      <img src={prod.image_url} alt={prod.name} className="w-8 h-8 rounded object-cover border border-gray-200" />
+                                    ) : (
+                                      <div className="w-8 h-8 rounded bg-gray-100 border border-gray-200 flex items-center justify-center">
+                                        <ImageIcon className="h-4 w-4 text-gray-400" />
+                                      </div>
+                                    )}
+                                    <div>
+                                      <div>{prod.name}</div>
+                                      <div className="text-xs text-gray-400 font-normal">{prod.brand || 'No Brand'}</div>
+                                    </div>
+                                  </td>
+                                  <td className="py-3.5 text-gray-500">
+                                    {categories.find(c => c.id === prod.category_id)?.name || 'Unlinked'}
+                                  </td>
+                                  <td className="py-3.5 font-bold text-gray-800">₦{parseFloat(prod.price).toLocaleString()}</td>
+                                  <td className="py-3.5">
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${prod.stock > 5 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                                      {prod.stock} units
+                                    </span>
+                                  </td>
+                                  <td className="py-3.5 text-right">
+                                    <div className="flex justify-end gap-1">
+                                      <button onClick={() => handleEditProductClick(prod)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md">
+                                        <Edit3 className="h-4 w-4" />
+                                      </button>
+                                      <button onClick={() => handleDeleteProduct(prod.id)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md">
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
