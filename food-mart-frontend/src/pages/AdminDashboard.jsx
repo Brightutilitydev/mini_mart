@@ -3,28 +3,34 @@ import { Link } from 'react-router-dom';
 import { 
   Database, Store, PlusCircle, Tag, Package, Trash2, 
   Edit3, CheckCircle2, AlertCircle, X, Layers, Image as ImageIcon, 
-  Truck, Navigation, ExternalLink, ShoppingBag, FileText, Phone, MapPin, Clock, Search
+  Truck, Navigation, ExternalLink, ShoppingBag, FileText, Phone, MapPin, Clock, Search, Shield, UserPlus, Users, User
 } from 'lucide-react';
 import apiClient from '../api/client';
 
 export default function AdminDashboard({ user, categories, products, triggerReload }) {
   const [status, setStatus] = useState({ type: '', message: '' });
   const [activeTab, setActiveTab] = useState('orders');
-  
-  // ✅ NEW: Search State
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const [catName, setCatName] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [prodForm, setProdForm] = useState({
     name: '', price: '', brand: '', category_id: '', stock: 20, package_size: '', description: '', image_url: ''
   });
   const [prodImage, setProdImage] = useState(null);
-  
+
   const [orders, setOrders] = useState([]);
   const [viewOrder, setViewOrder] = useState(null);
 
-  const adminId = user?.id || user?.user_id || user?.uuid || (user?.user && user.user.id);
+  const [staffList, setStaffList] = useState([]);
+  const [staffTrigger, setStaffTrigger] = useState(0);
+  const [staffForm, setStaffForm] = useState({
+    first_name: '', last_name: '', email: '', whatsapp_number: '', password: ''
+  });
+
+  const actualUser = user?.user || user;
+  const adminId = actualUser?.id || actualUser?.user_id || actualUser?.uuid;
+  const isSuperAdmin = actualUser && (actualUser.is_super_admin === true || actualUser.is_super_admin === 1 || actualUser.is_super_admin === 'true' || actualUser.is_super_admin === 'True');
 
   useEffect(() => {
     const fetchAdminOrders = async () => {
@@ -46,6 +52,21 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    if (activeTab === 'staff' && isSuperAdmin) {
+      const fetchStaff = async () => {
+        try {
+          const res = await apiClient.get('/users');
+          const admins = res.data.filter(u => u.is_admin === true || u.is_admin === 1 || u.is_admin === 'true');
+          setStaffList(admins);
+        } catch (e) {
+          console.error("Failed to fetch staff:", e);
+        }
+      };
+      fetchStaff();
+    }
+  }, [activeTab, isSuperAdmin, staffTrigger]);
+
   const displayAlert = (type, message) => {
     setStatus({ type, message });
     setTimeout(() => setStatus({ type: '', message: '' }), 4000);
@@ -66,7 +87,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
       displayAlert('success', 'Order cancelled and inventory restocked!');
       setViewOrder(null);
       setOrders(prev => prev.filter(o => o.id !== orderId));
-      triggerReload(); 
+      triggerReload();
     } catch (err) {
       displayAlert('error', err.response?.data?.error || 'Failed to cancel order.');
     }
@@ -126,7 +147,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
     e.preventDefault();
     const formData = new FormData();
     formData.append('user_id', adminId);
-    
+
     formData.append('name', prodForm.name);
     formData.append('price', prodForm.price);
     formData.append('category_id', prodForm.category_id);
@@ -138,10 +159,10 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
 
     try {
       if (editingId) {
-        await apiClient.put(`/products/${editingId}`, formData, { headers: { 'Content-Type': 'multipart/form-data' }});
+        await apiClient.put(`/products/${editingId}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
         displayAlert('success', 'Product updated successfully!');
       } else {
-        await apiClient.post('/products', formData, { headers: { 'Content-Type': 'multipart/form-data' }});
+        await apiClient.post('/products', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
         displayAlert('success', `Product "${prodForm.name}" created!`);
       }
       setEditingId(null);
@@ -158,7 +179,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
       name: product.name, price: product.price, brand: product.brand || '',
       category_id: product.category_id || '', stock: product.stock,
       package_size: product.package_size || '', description: product.description || '',
-      image_url: product.image_url || '' 
+      image_url: product.image_url || ''
     });
     setActiveTab('products');
   };
@@ -174,23 +195,58 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
     }
   };
 
-  // ✅ NEW: DYNAMIC FILTERING LOGIC
-  // Calculate order numbers FIRST so they don't break when searching
+  const handleStaffSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await apiClient.post('/users', {
+        ...staffForm,
+        is_admin: true,
+        is_super_admin: false
+      });
+      displayAlert('success', `Sub-Admin account for ${staffForm.first_name} created successfully!`);
+      setStaffForm({ first_name: '', last_name: '', email: '', whatsapp_number: '', password: '' });
+      setStaffTrigger(prev => prev + 1);
+    } catch (err) {
+      displayAlert('error', err.response?.data?.error || err.response?.data?.message || 'Failed to create staff account.');
+    }
+  };
+
+  const handleDeleteStaff = async (id, email) => {
+    if (email === 'masterbright02@gmail.com') {
+      displayAlert('error', 'Action Denied: You cannot delete the Master Super Admin.');
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to revoke access and delete ${email}?`)) return;
+
+    try {
+      await apiClient.delete(`/users/${id}`);
+      displayAlert('success', 'Staff access revoked and account deleted.');
+      setStaffTrigger(prev => prev + 1);
+    } catch (err) {
+      displayAlert('error', err.response?.data?.error || 'Failed to delete staff.');
+    }
+  };
+
   const processedOrders = orders.map((o, idx) => ({ ...o, orderNumber: orders.length - idx }));
-  
-  const filteredOrders = processedOrders.filter(o => 
-    o.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+
+  const filteredOrders = processedOrders.filter(o =>
+    o.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (o.contact_phone && o.contact_phone.includes(searchQuery)) ||
     o.orderNumber.toString().includes(searchQuery)
   );
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredProducts = products.filter(p =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (p.brand && p.brand.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const filteredCategories = categories.filter(c => 
+  const filteredCategories = categories.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredStaff = staffList.filter(s =>
+    s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.first_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -199,22 +255,26 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
         <div className="flex items-center gap-3">
           <img src="/logo-circular.jpg" alt="C_Express" className="h-10 w-10 rounded-full object-contain bg-white" />
           <div>
-            <span className="block font-black tracking-widest uppercase text-sm leading-none">C_EXPRESS CONSOLE</span>
-            <span className="block text-[10px] text-gray-400 font-mono mt-1">v1.0.0 (Authorized Access)</span>
+            <span className="block font-black tracking-widest uppercase text-sm leading-none flex items-center gap-1.5">
+              C_EXPRESS CONSOLE {isSuperAdmin && <Shield className="h-3.5 w-3.5 text-green-400" />}
+            </span>
+            <span className="block text-[10px] text-gray-400 font-mono mt-1">
+              v1.0.0 ({isSuperAdmin ? 'Super Admin' : 'Sub Admin'})
+            </span>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => {
               localStorage.removeItem('foodMartUser');
               window.location.href = '/';
-            }} 
+            }}
             className="flex items-center gap-2 text-xs font-bold text-red-400 hover:text-white hover:bg-red-500/20 px-3 py-2 rounded-lg transition-colors"
           >
             End Session
           </button>
-          
+
           <Link to="/" className="flex items-center gap-2 text-xs font-bold bg-white/10 hover:bg-white/20 px-4 py-2.5 rounded-lg transition-colors border border-white/5">
             <Store className="h-4 w-4" /> Storefront
           </Link>
@@ -227,24 +287,28 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
             <h1 className="text-2xl font-black text-gray-950 tracking-tight">System Administration</h1>
             <p className="text-sm text-gray-500">Manage products, categories, and fulfill incoming orders.</p>
           </div>
-          
+
           <div className="flex bg-gray-100 p-1 rounded-xl w-full md:w-auto overflow-x-auto">
             <button onClick={() => { setActiveTab('orders'); setEditingId(null); setSearchQuery(''); }} className={`px-5 py-2 whitespace-nowrap rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'orders' ? 'bg-white text-[#f68b1e] shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
-              <Truck className="h-4 w-4" /> Incoming Orders
+              <Truck className="h-4 w-4" /> Orders
             </button>
             <button onClick={() => { setActiveTab('products'); setEditingId(null); setSearchQuery(''); }} className={`px-5 py-2 whitespace-nowrap rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'products' ? 'bg-white text-[#f68b1e] shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
-              <Package className="h-4 w-4" /> Products Inventory
+              <Package className="h-4 w-4" /> Products
             </button>
             <button onClick={() => { setActiveTab('categories'); setEditingId(null); setSearchQuery(''); }} className={`px-5 py-2 whitespace-nowrap rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'categories' ? 'bg-white text-[#f68b1e] shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
               <Layers className="h-4 w-4" /> Categories
             </button>
+            {isSuperAdmin && (
+              <button onClick={() => { setActiveTab('staff'); setEditingId(null); setSearchQuery(''); }} className={`px-5 py-2 whitespace-nowrap rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${activeTab === 'staff' ? 'bg-white text-[#f68b1e] shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+                <Shield className="h-4 w-4" /> Staff Mgmt
+              </button>
+            )}
           </div>
         </div>
 
-        {/* ✅ NEW: UNIVERSAL SEARCH BAR */}
         <div className="mb-8 relative max-w-2xl">
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder={`Search ${activeTab} data...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -252,8 +316,8 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
           />
           <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
           {searchQuery && (
-            <button 
-              onClick={() => setSearchQuery('')} 
+            <button
+              onClick={() => setSearchQuery('')}
               className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-0.5"
             >
               <X className="h-4 w-4" />
@@ -263,14 +327,12 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
 
         {status.message && (
           <div className={`p-4 rounded-xl flex items-start gap-3 text-sm mb-6 max-w-2xl animate-fade-in shadow-sm ${status.type === 'success' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
-            {status.type === 'success' ? <CheckCircle2 className="h-5 w-5 mt-0.5" /> : <AlertCircle className="h-5 w-5 mt-0.5" />}
-            <span className="font-medium">{status.message}</span>
+            {status.type === 'success' ? <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0" /> : <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />}
+            <span>{status.message}</span>
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* ORDERS TAB */}
           {activeTab === 'orders' && (
             <div className="lg:col-span-3">
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
@@ -280,7 +342,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                   </h3>
                   {searchQuery && <span className="text-xs font-bold text-[#f68b1e] bg-orange-50 px-2 py-1 rounded">{filteredOrders.length} Results Found</span>}
                 </div>
-                
+
                 {filteredOrders.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <Truck className="h-12 w-12 mx-auto mb-3 opacity-20" />
@@ -299,43 +361,41 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {filteredOrders.map((order) => {
-                          return (
-                            <tr key={order.id} className="hover:bg-orange-50/30 transition-colors group">
-                              <td className="p-4">
-                                <div className="font-black text-gray-900 text-sm">Order #{order.orderNumber}</div>
-                                <div className="font-mono text-[10px] text-gray-400 mt-0.5">UUID: {order.id.substring(0, 8)}</div>
-                              </td>
-                              <td className="p-4 font-bold text-gray-800">
-                                <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded text-xs">
-                                  {getItemsCount(order)} units
+                        {filteredOrders.map((order) => (
+                          <tr key={order.id} className="hover:bg-orange-50/30 transition-colors group">
+                            <td className="p-4">
+                              <div className="font-black text-gray-900 text-sm">Order #{order.orderNumber}</div>
+                              <div className="font-mono text-[10px] text-gray-400 mt-0.5">UUID: {order.id.substring(0, 8)}</div>
+                            </td>
+                            <td className="p-4 font-bold text-gray-800">
+                              <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded text-xs">
+                                {getItemsCount(order)} units
+                              </span>
+                            </td>
+                            <td className="p-4 text-gray-600 font-medium">
+                              {order.contact_phone || 'No phone'}
+                            </td>
+                            <td className="p-4">
+                              {order.gps_link ? (
+                                <span className="text-blue-600 font-bold flex items-center gap-1 text-xs bg-blue-50 px-2.5 py-1 rounded w-max border border-blue-100">
+                                  <Navigation className="h-3 w-3" /> GPS Location Attached
                                 </span>
-                              </td>
-                              <td className="p-4 text-gray-600 font-medium">
-                                {order.contact_phone || 'No phone'}
-                              </td>
-                              <td className="p-4">
-                                {order.gps_link ? (
-                                  <span className="text-blue-600 font-bold flex items-center gap-1 text-xs bg-blue-50 px-2.5 py-1 rounded w-max border border-blue-100">
-                                    <Navigation className="h-3 w-3" /> GPS Location Attached
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-500 text-xs truncate max-w-[200px] inline-block font-medium">
-                                    {order.delivery_address || 'Not Provided'}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="p-4 text-right">
-                                <button 
-                                  onClick={() => setViewOrder(order)}
-                                  className="text-xs font-bold bg-gray-900 text-white px-5 py-2 rounded-lg hover:bg-[#f68b1e] shadow-sm transition-all flex items-center gap-2 ml-auto"
-                                >
-                                  View Dispatch <ExternalLink className="h-3.5 w-3.5" />
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                              ) : (
+                                <span className="text-gray-500 text-xs truncate max-w-[200px] inline-block font-medium">
+                                  {order.delivery_address || 'Not Provided'}
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-4 text-right">
+                              <button
+                                onClick={() => setViewOrder(order)}
+                                className="text-xs font-bold bg-gray-900 text-white px-5 py-2 rounded-lg hover:bg-[#f68b1e] shadow-sm transition-all flex items-center gap-2 ml-auto"
+                              >
+                                View Dispatch <ExternalLink className="h-3.5 w-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -344,15 +404,128 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
             </div>
           )}
 
-          {/* PRODUCTS & CATEGORIES TABS */}
-          {activeTab !== 'orders' && (
+          {activeTab === 'staff' && isSuperAdmin && (
+            <>
+              <div className="lg:col-span-1">
+                <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm sticky top-24">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <UserPlus className="h-5 w-5 text-[#f68b1e]" /> Provision Sub-Admin
+                  </h3>
+                  <p className="text-xs text-gray-500 mb-5 leading-relaxed">
+                    Sub-Admins can manage products and fulfill orders, but cannot access bank settings or add staff.
+                  </p>
+
+                  <form onSubmit={handleStaffSubmit} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">First Name *</label>
+                        <input required type="text" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={staffForm.first_name} onChange={e => setStaffForm({ ...staffForm, first_name: e.target.value })} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Last Name *</label>
+                        <input required type="text" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={staffForm.last_name} onChange={e => setStaffForm({ ...staffForm, last_name: e.target.value })} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email Address *</label>
+                      <input required type="email" placeholder="staff@foodmart.com" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={staffForm.email} onChange={e => setStaffForm({ ...staffForm, email: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">WhatsApp Number *</label>
+                      <input required type="tel" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={staffForm.whatsapp_number} onChange={e => setStaffForm({ ...staffForm, whatsapp_number: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Temporary Password *</label>
+                      <input required type="text" placeholder="e.g. TempPass123" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={staffForm.password} onChange={e => setStaffForm({ ...staffForm, password: e.target.value })} />
+                    </div>
+
+                    <button type="submit" className="w-full bg-[#f68b1e] text-white py-2.5 rounded-lg text-sm font-bold hover:bg-orange-600 transition-colors shadow-sm mt-4 flex items-center justify-center gap-2">
+                      <Shield className="h-4 w-4" /> Grant Access
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              <div className="lg:col-span-2">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                      <Users className="h-4 w-4" /> Authorized System Users
+                    </h3>
+                    {searchQuery && <span className="text-xs font-bold text-[#f68b1e] bg-orange-50 px-2 py-1 rounded">{filteredStaff.length} Results</span>}
+                  </div>
+
+                  {filteredStaff.length === 0 ? (
+                    <div className="text-center py-8 text-gray-400">No staff found matching "{searchQuery}".</div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-100 text-gray-400 font-semibold">
+                            <th className="pb-3">Staff Member</th>
+                            <th className="pb-3">Access Level</th>
+                            <th className="pb-3">Contact</th>
+                            <th className="pb-3 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {filteredStaff.map(staff => {
+                            const isStaffSuper = staff.is_super_admin === true || staff.is_super_admin === 1 || staff.is_super_admin === 'true';
+                            return (
+                              <tr key={staff.id} className="hover:bg-gray-50/50 transition-colors group">
+                                <td className="py-3.5 font-medium text-gray-900">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`h-8 w-8 rounded-full flex items-center justify-center text-white font-bold text-xs ${isStaffSuper ? 'bg-green-500' : 'bg-orange-400'}`}>
+                                      {staff.first_name?.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                      <div className="text-sm">{staff.first_name} {staff.last_name}</div>
+                                      <div className="text-xs text-gray-400 font-normal">{staff.email}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-3.5">
+                                  {isStaffSuper ? (
+                                    <span className="bg-green-50 text-green-700 px-2 py-1 rounded text-[10px] font-bold uppercase flex items-center gap-1 w-max">
+                                      <Shield className="h-3 w-3" /> Super Admin
+                                    </span>
+                                  ) : (
+                                    <span className="bg-orange-50 text-orange-700 px-2 py-1 rounded text-[10px] font-bold uppercase flex items-center gap-1 w-max">
+                                      <User className="h-3 w-3" /> Sub Admin
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-3.5 text-gray-500 text-xs">
+                                  {staff.whatsapp_number || 'N/A'}
+                                </td>
+                                <td className="py-3.5 text-right">
+                                  <button
+                                    onClick={() => handleDeleteStaff(staff.id, staff.email)}
+                                    className="text-xs font-bold text-red-500 hover:text-white bg-red-50 hover:bg-red-500 px-3 py-1.5 rounded transition-colors"
+                                  >
+                                    Revoke
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab !== 'orders' && activeTab !== 'staff' && (
             <>
               <div className="lg:col-span-1">
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm sticky top-24">
                   {activeTab === 'categories' ? (
                     <>
                       <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <PlusCircle className="h-5 w-5 text-[#f68b1e]" /> 
+                        <PlusCircle className="h-5 w-5 text-[#f68b1e]" />
                         {editingId ? 'Modify Category' : 'Create Category'}
                       </h3>
                       <form onSubmit={handleCategorySubmit} className="space-y-4">
@@ -376,7 +549,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                     <>
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                          <PlusCircle className="h-5 w-5 text-[#f68b1e]" /> 
+                          <PlusCircle className="h-5 w-5 text-[#f68b1e]" />
                           {editingId ? 'Modify Product' : 'Add Product'}
                         </h3>
                         {editingId && (
@@ -388,45 +561,45 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                       <form onSubmit={handleProductSubmit} className="space-y-3.5">
                         <div>
                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Product Title *</label>
-                          <input required type="text" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={prodForm.name} onChange={e => setProdForm({...prodForm, name: e.target.value})} />
+                          <input required type="text" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={prodForm.name} onChange={e => setProdForm({ ...prodForm, name: e.target.value })} />
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Price (₦) *</label>
-                            <input required type="number" step="0.01" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={prodForm.price} onChange={e => setProdForm({...prodForm, price: e.target.value})} />
+                            <input required type="number" step="0.01" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={prodForm.price} onChange={e => setProdForm({ ...prodForm, price: e.target.value })} />
                           </div>
                           <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Stock Vol *</label>
-                            <input required type="number" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={prodForm.stock} onChange={e => setProdForm({...prodForm, stock: e.target.value})} />
+                            <input required type="number" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={prodForm.stock} onChange={e => setProdForm({ ...prodForm, stock: e.target.value })} />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Category Link *</label>
-                            <select required className="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={prodForm.category_id} onChange={e => setProdForm({...prodForm, category_id: e.target.value})}>
+                            <select required className="w-full px-2 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={prodForm.category_id} onChange={e => setProdForm({ ...prodForm, category_id: e.target.value })}>
                               <option value="">Select...</option>
                               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                           </div>
                           <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Brand</label>
-                            <input type="text" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={prodForm.brand} onChange={e => setProdForm({...prodForm, brand: e.target.value})} />
+                            <input type="text" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={prodForm.brand} onChange={e => setProdForm({ ...prodForm, brand: e.target.value })} />
                           </div>
                         </div>
                         <div>
                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Package Sizing</label>
-                          <input type="text" placeholder="e.g. 50cl, 1kg" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={prodForm.package_size} onChange={e => setProdForm({...prodForm, package_size: e.target.value})} />
+                          <input type="text" placeholder="e.g. 50cl, 1kg" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={prodForm.package_size} onChange={e => setProdForm({ ...prodForm, package_size: e.target.value })} />
                         </div>
                         <div>
                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
                             <ImageIcon className="h-3.5 w-3.5" /> Product Image URL
                           </label>
-                          <input 
-                            type="url" 
+                          <input
+                            type="url"
                             placeholder="e.g. https://example.com/image.jpg"
                             value={prodForm.image_url}
-                            onChange={(e) => setProdForm({...prodForm, image_url: e.target.value})} 
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" 
+                            onChange={(e) => setProdForm({ ...prodForm, image_url: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]"
                           />
                         </div>
 
@@ -456,7 +629,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                               <div className="flex items-center gap-2">
                                 <Tag className="h-4 w-4 text-[#f68b1e]" />
                                 <span className="font-medium text-gray-800 text-sm">{cat.name}</span>
-                                <span className="text-[10px] text-gray-300 font-mono">({cat.id.substring(0,8)})</span>
+                                <span className="text-[10px] text-gray-300 font-mono">({cat.id.substring(0, 8)})</span>
                               </div>
                               <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
                                 <button onClick={() => { setEditingId(cat.id); setCatName(cat.name); }} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md">
@@ -477,7 +650,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Warehouse SKU Records</h3>
                         {searchQuery && <span className="text-xs font-bold text-[#f68b1e] bg-orange-50 px-2 py-1 rounded">{filteredProducts.length} Results</span>}
                       </div>
-                      
+
                       {filteredProducts.length === 0 ? (
                         <div className="text-center py-8 text-gray-400">No products found matching "{searchQuery}".</div>
                       ) : (
@@ -539,17 +712,16 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
               </div>
             </>
           )}
-
         </div>
       </div>
 
       {viewOrder && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in"
           onClick={() => setViewOrder(null)}
         >
-          <div 
-            className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative" 
+          <div
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative"
             onClick={e => e.stopPropagation()}
           >
             <div className="bg-gray-950 p-6 flex justify-between items-center sticky top-0 z-10">
@@ -562,7 +734,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                   <p className="text-xs text-gray-400 font-mono">UUID: {viewOrder.id.substring(0, 8)}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setViewOrder(null)}
                 className="bg-white/10 p-2 rounded-full text-gray-400 hover:text-white border border-white/5 hover:bg-white/20 transition-colors shadow-sm"
               >
@@ -573,7 +745,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
             <div className="p-6 space-y-6">
               <div className="bg-orange-50/50 border border-orange-100 rounded-xl p-5 space-y-4">
                 <h4 className="text-xs font-bold text-[#f68b1e] uppercase tracking-wider border-b border-orange-100 pb-2">Customer & Delivery Info</h4>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex items-start gap-3">
                     <Phone className="h-4 w-4 text-orange-500 mt-0.5" />
@@ -625,7 +797,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                         </div>
                         <div className="flex-grow">
                           <p className="text-sm font-bold text-gray-800 line-clamp-1">{productInfo ? productInfo.name : 'Unknown Product'}</p>
-                          <p className="text-[10px] text-gray-400 font-mono mt-0.5">ID: {item.product_id.substring(0,8)}</p>
+                          <p className="text-[10px] text-gray-400 font-mono mt-0.5">ID: {item.product_id.substring(0, 8)}</p>
                         </div>
                         <div className="text-right bg-white px-3 py-1.5 rounded-lg border border-gray-100">
                           <span className="text-[10px] text-gray-400 uppercase font-bold block mb-1">Qty</span>
@@ -648,25 +820,23 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
               </div>
 
               <div className="flex gap-4 pt-2">
-                <button 
+                <button
                   onClick={() => handleCancelOrder(viewOrder.id)}
                   className="flex-1 bg-red-50 text-red-600 text-sm font-bold py-3 rounded-xl hover:bg-red-100 transition-colors flex justify-center items-center gap-2 shadow-sm"
                 >
                   <Trash2 className="h-4 w-4" /> Cancel & Return Stock
                 </button>
-                <button 
+                <button
                   onClick={() => setViewOrder(null)}
                   className="flex-1 bg-gray-900 text-white text-sm font-bold py-3 rounded-xl hover:bg-gray-800 transition-colors"
                 >
                   Done
                 </button>
               </div>
-              
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
