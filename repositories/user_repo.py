@@ -14,7 +14,7 @@ class UserRepo:
 
     @classmethod
     def new(cls, **kwargs) -> User:
-        """Create and store a new user"""
+        """Create and store a new user."""
         required_fields = [
             "first_name",
             "last_name",
@@ -34,6 +34,7 @@ class UserRepo:
             whatsapp_number=kwargs["whatsapp_number"],
             address=kwargs.get("address"),
             is_admin=kwargs.get("is_admin", False),
+            is_super_admin=kwargs.get("is_super_admin", False),
             bank_name=kwargs.get("bank_name"),
             account_number=kwargs.get("account_number"),
             account_name=kwargs.get("account_name"),
@@ -52,44 +53,22 @@ class UserRepo:
 
         return user
 
-
     @classmethod
     def get(cls, user_id: str) -> User | None:
-        """
-        Retrieve a user by ID.
-
-        Args:
-            user_id (str): UUID of the user.
-
-        Returns:
-            User | None: The user instance if found, else None.
-        """
+        """Retrieve a user by ID."""
         return storage.get(User, user_id)
-
 
     @classmethod
     def all(cls) -> list[User]:
-        """
-        Retrieve all users.
-
-        Returns:
-            list[User]: List of all user instances.
-        """
+        """Retrieve all users."""
         return storage.all(User)
 
-
     @classmethod
-    def update(cls, **kwargs) -> User | None:
-        """
-        Update user details.
+    def update(cls, user_id=None, **kwargs) -> User | None:
+        """Update a user while preserving legacy behavior and super-admin mirroring."""
+        if user_id is None:
+            user_id = kwargs.pop("id", None)
 
-        Args:
-            kwargs: Must include "id" of the user and the fields to update.
-
-        Returns:
-            User | None: Updated user instance, or None if not found/invalid.
-        """
-        user_id = kwargs.get("id")
         if not user_id:
             return None
 
@@ -97,27 +76,47 @@ class UserRepo:
         if not user:
             return None
 
+        allowed_keys = [
+            "first_name",
+            "last_name",
+            "email",
+            "phone_number",
+            "whatsapp_number",
+            "address",
+            "password",
+            "is_admin",
+            "is_super_admin",
+            "bank_name",
+            "account_number",
+            "account_name",
+        ]
+
         for key, value in kwargs.items():
+            if key not in allowed_keys:
+                continue
             if key == "password":
                 user.password = value
-            elif key != "id" and hasattr(user, key):
+            else:
                 setattr(user, key, value)
 
-        user.save()
-        return user
+        bank_keys = ["bank_name", "account_number", "account_name"]
+        is_super = getattr(user, "is_super_admin", False)
+        if is_super in [True, 1, "1", "true", "True"] and any(
+            key in kwargs for key in bank_keys
+        ):
+            for other_user in storage.all(User):
+                other_is_super = getattr(other_user, "is_super_admin", False)
+                if other_is_super in [True, 1, "1", "true", "True"] and other_user.id != user.id:
+                    other_user.bank_name = getattr(user, "bank_name", "")
+                    other_user.account_number = getattr(user, "account_number", "")
+                    other_user.account_name = getattr(user, "account_name", "")
 
+        storage.save()
+        return user
 
     @classmethod
     def delete(cls, user_id: str) -> bool:
-        """
-        Delete a user by ID.
-
-        Args:
-            user_id (str): UUID of the user.
-
-        Returns:
-            bool: True if deleted, False otherwise.
-        """
+        """Delete a user by ID."""
         user = cls.get(user_id)
         if not user:
             return False
@@ -125,44 +124,17 @@ class UserRepo:
         storage.save()
         return True
 
-
     @classmethod
     def get_by_username(cls, username: str) -> User | None:
-        """
-        Retrieve a user by username.
-
-        Args:
-            username (str): The username to search.
-
-        Returns:
-            User | None: User if found, else None.
-        """
+        """Retrieve a user by username."""
         return storage.get_by_attr(User, username=username)
-
 
     @classmethod
     def get_by_email(cls, email: str) -> User | None:
-        """
-        Retrieve a user by email.
-
-        Args:
-            email (str): The email to search.
-
-        Returns:
-            User | None: User if found, else None.
-        """
+        """Retrieve a user by email."""
         return storage.get_by_attr(User, email=email)
-
 
     @classmethod
     def get_by_whatsapp(cls, whatsapp_number: str) -> User | None:
-        """
-        Retrieve a user by WhatsApp number.
-
-        Args:
-            whatsapp_number (str): The WhatsApp number to search.
-
-        Returns:
-            User | None: User if found, else None.
-        """
+        """Retrieve a user by WhatsApp number."""
         return storage.get_by_attr(User, whatsapp_number=whatsapp_number)

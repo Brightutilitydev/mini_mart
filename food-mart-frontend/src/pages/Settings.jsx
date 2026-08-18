@@ -26,7 +26,10 @@ export default function Settings({ user, setUser }) {
   // Protect the route
   if (!actualUser) return <Navigate to="/auth" />;
 
-  const isAdmin = actualUser.is_admin === true || actualUser.is_admin === 1;
+  // Keep the old admin check, while also supporting the new super-admin role.
+  const isAdmin = actualUser.is_admin === true || actualUser.is_admin === 1 || actualUser.is_admin === 'true';
+  const isSuperAdmin = actualUser.is_super_admin === true || actualUser.is_super_admin === 1 || actualUser.is_super_admin === 'true';
+  const canManageBankDetails = isSuperAdmin || isAdmin;
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -96,7 +99,10 @@ export default function Settings({ user, setUser }) {
               {actualUser.first_name?.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h3 className="text-xl font-black text-gray-900">{actualUser.first_name} {actualUser.last_name}</h3>
+              <h3 className="text-xl font-black text-gray-900 flex items-center gap-2">
+                {actualUser.first_name} {actualUser.last_name}
+                {isSuperAdmin && <Shield className="h-4 w-4 text-green-500" title="Super Administrator" />}
+              </h3>
               <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-1">
                 <Mail className="h-3.5 w-3.5" /> {actualUser.email}
               </p>
@@ -107,10 +113,10 @@ export default function Settings({ user, setUser }) {
           <form onSubmit={handleSave} className="p-6 md:p-8 space-y-8">
             
             {/* Contact Details Section */}
-            {isAdmin && (
+            {canManageBankDetails && (
               <div className="bg-orange-50/50 p-6 rounded-xl border border-orange-100">
                 <h4 className="text-xs font-bold text-[#f68b1e] uppercase tracking-wider mb-4 border-b border-orange-100 pb-2 flex items-center gap-1">
-                  <CreditCard className="h-3.5 w-3.5" /> Store Receiving Account Details (Admin Only)
+                  <CreditCard className="h-3.5 w-3.5" /> Store Receiving Account Details {isSuperAdmin ? '(Super Admin Only)' : '(Admin Only)'}
                 </h4>
                 
                 <div className="space-y-4">

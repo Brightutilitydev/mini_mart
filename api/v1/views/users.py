@@ -53,28 +53,29 @@ def remove_user(user_id):
 
 @app_views.route('/store-settings', methods=['GET'])
 def get_store_settings():
-    """Public endpoint for the cart to fetch the Admin's bank details"""
-    
-    # 🚨 SPRINT FIX: Iterate through all users to find the active admin
-    admin = None
+    """Public endpoint for the cart to fetch the current store bank details."""
     all_users = UserRepo.all()
-    for u in all_users:
-        if getattr(u, 'is_admin', False) in [True, 1]:
-            admin = u
-            break
 
-    if admin:
-        # Pull the values safely, defaulting to empty strings if missing
-        b_name = getattr(admin, "bank_name", "")
-        a_num = getattr(admin, "account_number", "")
-        a_name = getattr(admin, "account_name", "")
-        
-        print(f"📡 Serving Store Settings: Bank={b_name}, Acc={a_num}")
-        
+    target_admin = None
+
+    for u in all_users:
+        if getattr(u, 'is_super_admin', False) in [True, 1, '1', 'true', 'True']:
+            if getattr(u, 'account_number', None):
+                target_admin = u
+                break
+
+    if not target_admin:
+        for u in all_users:
+            if getattr(u, 'is_admin', False) in [True, 1, '1', 'true', 'True']:
+                if getattr(u, 'account_number', None):
+                    target_admin = u
+                    break
+
+    if target_admin:
         return jsonify({
-            "bank_name": b_name if b_name is not None else "",
-            "account_number": a_num if a_num is not None else "",
-            "account_name": a_name if a_name is not None else ""
+            "bank_name": getattr(target_admin, "bank_name", "") or "",
+            "account_number": getattr(target_admin, "account_number", "") or "",
+            "account_name": getattr(target_admin, "account_name", "") or ""
         }), 200
 
     return jsonify({"error": "Store settings not found"}), 404
