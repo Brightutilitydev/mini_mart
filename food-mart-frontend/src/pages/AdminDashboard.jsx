@@ -25,7 +25,7 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
   const [staffList, setStaffList] = useState([]);
   const [staffTrigger, setStaffTrigger] = useState(0);
   const [staffForm, setStaffForm] = useState({
-    first_name: '', last_name: '', email: '', whatsapp_number: '', password: ''
+    first_name: '', last_name: '', email: '', whatsapp_number: '', password: '', role: 'sub_admin'
   });
 
   const actualUser = user?.user || user;
@@ -199,12 +199,16 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
     e.preventDefault();
     try {
       await apiClient.post('/users', {
-        ...staffForm,
+        first_name: staffForm.first_name,
+        last_name: staffForm.last_name,
+        email: staffForm.email,
+        whatsapp_number: staffForm.whatsapp_number,
+        password: staffForm.password,
         is_admin: true,
-        is_super_admin: false
+        is_super_admin: staffForm.role === 'super_admin'
       });
-      displayAlert('success', `Sub-Admin account for ${staffForm.first_name} created successfully!`);
-      setStaffForm({ first_name: '', last_name: '', email: '', whatsapp_number: '', password: '' });
+      displayAlert('success', `${staffForm.role === 'super_admin' ? 'Super Admin' : 'Sub-Admin'} account for ${staffForm.first_name} created successfully!`);
+      setStaffForm({ first_name: '', last_name: '', email: '', whatsapp_number: '', password: '', role: 'sub_admin' });
       setStaffTrigger(prev => prev + 1);
     } catch (err) {
       displayAlert('error', err.response?.data?.error || err.response?.data?.message || 'Failed to create staff account.');
@@ -437,6 +441,14 @@ export default function AdminDashboard({ user, categories, products, triggerRelo
                     <div>
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Temporary Password *</label>
                       <input required type="text" placeholder="e.g. TempPass123" className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e]" value={staffForm.password} onChange={e => setStaffForm({ ...staffForm, password: e.target.value })} />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">System Role *</label>
+                      <select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f68b1e] bg-white" value={staffForm.role} onChange={e => setStaffForm({ ...staffForm, role: e.target.value })}>
+                        <option value="sub_admin">Sub-Admin (Manage Products/Orders)</option>
+                        <option value="super_admin">Super Admin (Full Access + Bank Details)</option>
+                      </select>
                     </div>
 
                     <button type="submit" className="w-full bg-[#f68b1e] text-white py-2.5 rounded-lg text-sm font-bold hover:bg-orange-600 transition-colors shadow-sm mt-4 flex items-center justify-center gap-2">
