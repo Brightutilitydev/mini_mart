@@ -6,8 +6,9 @@ from flask import (
     jsonify, request, current_app
 )
 from api.v1.views import app_views
+from api.v1.views.auth import admin_required
+from flask_jwt_extended import jwt_required
 from repositories.product_repo import ProductRepo
-from repositories.user_repo import UserRepo
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -40,31 +41,6 @@ def save_image(image):
         print(f"Cloudinary upload failed: {e}")
         return None
 
-# ✅ SMART AUTH BYPASS: Verify Admin securely via payload instead of blocked cross-site cookies
-def is_valid_admin():
-    user_id = request.args.get("user_id")
-    if not user_id and request.is_json:
-        data = request.get_json(silent=True)
-        if data:
-            user_id = data.get("user_id")
-    if not user_id and request.form:
-        user_id = request.form.get("user_id")
-        
-    if not user_id:
-        try:
-            from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
-            verify_jwt_in_request()
-            user_id = get_jwt_identity()
-        except Exception:
-            pass
-
-    if not user_id:
-        return False
-        
-    user = UserRepo.get(user_id)
-    return user and getattr(user, 'is_admin', False) in [True, 1]
-
-
 @app_views.route('/products', methods=['GET'])
 def get_all_products():
     """Get all products"""
@@ -81,11 +57,10 @@ def get_product(product_id):
     return jsonify({"error": "product not found"}), 404
 
 @app_views.route('/products', methods=['POST'])
+@jwt_required()
+@admin_required()
 def create_product():
     """Create a new product"""
-    if not is_valid_admin():
-        return jsonify({"error": "Admin access required"}), 401
-
     image_url = None
     images = request.files.getlist("images")
 
@@ -107,11 +82,10 @@ def create_product():
     return jsonify(new.to_dict()), 201
 
 @app_views.route('/products/<product_id>', methods=['PUT'])
+@jwt_required()
+@admin_required()
 def update_product(product_id):
     """Update an existing product"""
-    if not is_valid_admin():
-        return jsonify({"error": "Admin access required"}), 401
-
     product = ProductRepo.get(product_id)
     if not product:
         return jsonify({"error": "product not found"}), 404
@@ -150,11 +124,10 @@ def get_products_by_category(category_id):
     return jsonify([product.to_dict() for product in products]), 200
 
 @app_views.route('/products/<product_id>', methods=['DELETE'])
+@jwt_required()
+@admin_required()
 def remove_product(product_id):
     """Delete a product"""
-    if not is_valid_admin():
-        return jsonify({"error": "Admin access required"}), 401
-
     product = ProductRepo.get(product_id)
     if not product:
         return jsonify({"error": "product not found"}), 404

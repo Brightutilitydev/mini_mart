@@ -18,11 +18,12 @@ export default function AdminLogin({ setUser }) {
     try {
       // Authenticate with the real backend to get the secure session cookie (Fixes 401 Error)
       const response = await apiClient.post('/login', { email, password });
-      const userData = response.data;
+      const userData = response.data.user || response.data;
 
       // Verify they actually have database admin rights
       if (userData.is_admin == 1 || userData.is_admin === true) {
         setUser(userData);
+        localStorage.setItem('foodMartAccessToken', response.data.access_token);
         localStorage.setItem('foodMartUser', JSON.stringify(userData));
         navigate('/admin');
       } else {

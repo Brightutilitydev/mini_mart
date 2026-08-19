@@ -15,6 +15,9 @@ class UserRepo:
     @classmethod
     def new(cls, **kwargs) -> User:
         """Create and store a new user."""
+        kwargs.pop("is_admin", None)
+        kwargs.pop("is_super_admin", None)
+
         required_fields = [
             "first_name",
             "last_name",
@@ -33,8 +36,8 @@ class UserRepo:
             phone_number=kwargs.get("phone_number"),
             whatsapp_number=kwargs["whatsapp_number"],
             address=kwargs.get("address"),
-            is_admin=kwargs.get("is_admin", False),
-            is_super_admin=kwargs.get("is_super_admin", False),
+            is_admin=False,
+            is_super_admin=False,
             bank_name=kwargs.get("bank_name"),
             account_number=kwargs.get("account_number"),
             account_name=kwargs.get("account_name"),

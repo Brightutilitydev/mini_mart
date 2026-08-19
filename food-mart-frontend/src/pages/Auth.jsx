@@ -27,6 +27,7 @@ export default function Auth({ setUser }) {
         
         const actualUser = response.data.user || response.data;
         setUser(actualUser);
+        localStorage.setItem('foodMartAccessToken', response.data.access_token);
         localStorage.setItem('foodMartUser', JSON.stringify(actualUser));
         
         setStatus({ type: 'success', message: 'Logged in successfully!' });

@@ -16,6 +16,8 @@ class OrderRepo:
 
         # ✅ VERIFY STOCK BEFORE CREATING ORDER
         for product_id, quantity in items.items():
+            if isinstance(quantity, bool) or not isinstance(quantity, int) or quantity <= 0:
+                raise ValueError("Quantity must be a positive integer")
             product = storage.get(Product, product_id)
             if not product:
                 raise ValueError(f"Product not found.")

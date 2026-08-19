@@ -10,7 +10,7 @@ from repositories.user_repo import UserRepo
 @app_views.route('/users', methods=['GET'])
 def get_all_users():
     user_list = UserRepo.all()
-    user_list = [entry.to_dict() for entry in user_list]
+    user_list = [entry.to_safe_dict() for entry in user_list]
     return jsonify(user_list)
 
 @app_views.route('/users/<user_id>', methods=['GET'])
@@ -22,7 +22,9 @@ def get_user(user_id):
 
 @app_views.route('/users', methods=['POST'])
 def create_user():
-    data = request.get_json()
+    data = request.get_json() or {}
+    data.pop("is_admin", None)
+    data.pop("is_super_admin", None)
     try:
         new = UserRepo.new(**data)
     except ValueError as e:

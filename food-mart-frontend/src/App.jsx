@@ -85,6 +85,7 @@ export default function App() {
       setUser(null);
       setCart([]);
       localStorage.removeItem('foodMartUser');
+      localStorage.removeItem('foodMartAccessToken');
     }
   };
 

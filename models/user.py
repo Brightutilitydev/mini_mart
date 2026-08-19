@@ -68,3 +68,17 @@ class User(BaseModel, Base):
         if 'password' in user_dict:
             del user_dict['password']
         return user_dict
+
+    def to_safe_dict(self):
+        """Return user data without contact, address, or payment details."""
+        user_dict = self.to_dict()
+        for field in (
+            'phone_number',
+            'whatsapp_number',
+            'address',
+            'bank_name',
+            'account_number',
+            'account_name',
+        ):
+            user_dict.pop(field, None)
+        return user_dict
